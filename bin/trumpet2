@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+
+
+use lib '/home/disrail/ripe/lib';
+use ripe;
+
+# Perl Script for Trumpet Plots
+
+
+
+if (@ARGV != 3) {
+	print "Not enough Arguments\n";
+	print "trumpet - a program for producing trumpet plots\n";
+	print "usage - trumpet tag xpix ypix\n";
+	exit();
+}
+
+
+$tag=$ARGV[0];
+$xpixpos=$ARGV[1];
+$ypixpos=$ARGV[2];
+
+$getdata = `grabdat "select xpix, ypix, (-2.5 * log(S1) +32.689), p/0.75 from photdata, obs where tag_link = '$tag' and obs_id=obs_id_link and object like '%zpol%'" > output.dat`;
+
+
+
+open output, "output.dat" or die $!;
+open field, ">>field.dat" or die $!;
+open grb, ">>grb.dat" or die $!;
+
+while ($line = <output>)  {
+	
+	($null, $xpix, $ypix, $magnitude, $pol) = split(" ",$line);
+	
+	if (abs($xpix - $xpixpos) < 10 && abs($ypix - $ypixpos) < 10) {
+		print grb "$line\n";
+	}
+	else
+	{
+		print field "$line\n";	
+	}	
+}
+close output;
+close field;
+close grb;
+
+# Modify trumpet.gpc for our plot
+$modifyplot = `cat $ripe::ripedir/config/gplots/trumpet.gpc | sed 's/TAG/$tag/g' > ./trumpet.gpc`;
+
+$plot = `gnuplot ./trumpet.gpc > $tag.pdf`;
+
+#unlink glob "*.dat";
+unlink glob "trumpet.gpc"
+

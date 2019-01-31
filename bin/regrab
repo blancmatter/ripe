@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+
+# Script to repeat the quieries listed in  quieries.log
+
+
+$move = `mv quieries.log temp.log`;
+system("rm *.dat");
+open qlog, "temp.log" or die "ERROR: quieries.log not found in local directory\n\n";
+ 
+ 
+ while (<qlog>) {
+	($datfile, $db, $quiery)=split('\t',$_);
+	chomp $quiery;
+	print "Output datafile is: $datfile\n";
+	print "With quiery: $quiery\n";
+	
+	$getdata = `grabdat "$quiery" $datfile`;
+ }
+ 
+ 
+ $cleanup = `rm temp.log`;

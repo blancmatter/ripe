@@ -1,0 +1,104 @@
+#!/usr/bin/perl
+
+# moonstate file.fits
+# add moon data to fits observations
+# Doug Arnold July 2013
+
+use Math::Trig;
+use Math::Complex;
+use lib '/scratch/slo/NIRsky/Scripts/lib';
+use lise;
+$pi = 3.14159;
+
+$DEBUG=0;
+
+
+$file = $ARGV[0];
+
+# Pull fits data from files
+if (-e $file) {
+
+    $utstart = `modhead $file utstart | sed 's/[^0-9.:]*//g'`;
+    chomp $utstart;
+    if ($DEBUG) { print "Time: $utstart\n";}
+    
+    $date = `modhead $file date-obs | sed 's/[^0-9]*//g'`;
+    chomp $date;
+    substr($date, 4, 0) = '/'; substr($date, 7, 0) = '/'; 
+
+    if ($DEBUG) { print "Date: $date\n";}
+
+    $ra = `modhead $file ra | sed "s/[^0-9:.']*//g"`;
+    chomp $ra;
+    ($null, $ra, $null) = split ("'", $ra);  
+    $ra = lise::ra2angle($ra);
+    if ($DEBUG) { print "RA: $ra\n";}
+    
+    
+    $dec = `modhead $file dec | sed "s/[^0-9.:']*//g"`;
+    chomp $dec;
+    ($null, $dec, $null) = split ("'", $dec);
+    $dec = lise::dec2angle($dec);
+    if ($DEBUG) { print "Dec: $dec\n";}
+    
+}
+
+else 
+{
+    print "Error: File $file does not exist\n";
+    exit();
+    
+}
+
+
+
+#Grab Moon information
+$moonephem = `moonephem "$date $time"`;
+($moon_ra, $moon_dec, $moon_alt, $moon_frac) = split (' ',$moonephem);
+
+if ($DEBUG) {
+    print "Moon RA: $moon_ra\n";
+    print "Moon Dec: $moon_dec\n";
+    print "Moon Alt: $moon_alt\n";
+    print "Moon Frac: $moon_frac\n";
+}
+
+$moon_ra  = lise::ra2angle($moon_ra);
+$moon_dec = lise::dec2angle($moon_dec);
+$moon_alt = lise::dec2angle($moon_alt);
+
+
+if ($DEBUG) {
+    print "Moon RA: $moon_ra\n";
+    print "Moon Dec: $moon_dec\n";
+    print "Moon Alt: $moon_alt\n";
+    print "Moon Frac: $moon_frac\n";
+}
+
+# Calculated for spherical co-ordinates, with all values converted to radians for the calculation then back again. It works! It's been tested.....
+$moon_dist = acos (sin($dec / 360 * 2 * $pi) * sin($moon_dec / 360 * 2 * $pi) + (cos($dec / 360 * 2 * $pi) * cos($moon_dec / 360 * 2 * $pi) * cos(($ra / 360 * 2 * $pi) - ($moon_ra / 360 * 2 * $pi)))) * 360 / 2 / $pi;
+
+
+
+
+#reduce to 3 decimal places
+$moon_dist = sprintf("%.0f", $moon_dist);
+$moon_alt = sprintf("%.0f", $moon_alt);
+$moon_frac = sprintf("%.2f", $moon_frac);
+
+
+
+
+if ($DEBUG) {
+    print "Moon RA: $moon_ra\n";
+    print "Moon Dec: $moon_dec\n";
+    print "Moon Alt: $moon_alt\n";
+    print "Moon Frac: $moon_frac\n";
+    print "Moon Dist: $moon_dist\n";
+}
+
+$modhead = `modhead $file moonfrac $moon_frac`;
+$modhead = `modhead $file moonalt $moon_alt`;
+$modhead = `modhead $file moondist $moon_dist`;
+
+

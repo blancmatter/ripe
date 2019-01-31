@@ -1,0 +1,55 @@
+#!/usr/bin/perl 
+
+#Script to reconstruct moon data within RINGO2 files 
+
+
+# PERL MODULES WE WILL BE USING
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+
+
+# Debug options 
+$DEBUG = 0;
+
+
+#############################
+# Obtain list of fits files #
+#############################
+
+
+# Set to local directory
+$basepath=`pwd`;
+chomp $basepath;
+$ripedir = "/home/disrail/ripe";
+# Open the directory.
+opendir (DIR, $basepath)
+or die "Unable to open $basepath: $!";
+
+# Read in the fits files and sort them lexically
+my @files =  sort grep {/fits/} readdir (DIR);
+
+# Close the directory.
+closedir (DIR);
+
+    
+
+# check that we have a multiple of 8 files
+$no_files = @files;
+if ($DEBUG) {
+  print "No of files in Dir: $no_files\n";
+  for (@files) {print "$_\n";}
+}
+
+
+
+
+##############################
+# Group files into data sets #
+##############################
+
+
+# Create array of only date and obs ID info in file, then remove duplicates using hashes
+for (@files) {
+  ripe::moonstate($_);
+}

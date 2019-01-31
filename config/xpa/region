@@ -1,0 +1,4 @@
+#!/bin/bash
+
+xpaset -p ds9 regions deleteall
+echo "circle $1 $2 8" | xpaset ds9 regions 

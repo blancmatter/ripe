@@ -1,0 +1,21 @@
+set terminal pdfcairo size 4,3
+set size 1, 1
+set key off
+set title "Rank plot for OBS_ID" font ",5"
+set samples 200, 200
+set xlabel "Polarisation" font ",10"
+set ylabel "Number" font ",10"
+
+set xrange [0:UPPERX]
+set yrange [0:1200]
+
+set label 1 "RANKPERCENT"  at UPPERX - (UPPERX / 3.2), 1100 font ",15"
+set xtics out nomirror font ",8"
+set ytics font ",10"
+set style fill solid border -1
+binwidth=0.01
+bin(x,width)=width*floor(x/width) + binwidth/2.0
+set boxwidth binwidth
+# set object rectangle from POLVAL,0 to POLVAL, 12000 fc rgb "blue" lw 4 front
+set arrow from POLVAL,0 to POLVAL, 1200 nohead lc rgb 'blue' lw 5 front
+plot 'OBS_ID.dat' using (bin($1,binwidth)):(1.0) smooth freq with boxes

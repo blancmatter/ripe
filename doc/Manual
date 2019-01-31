@@ -1,0 +1,33 @@
+RIPE - Ringo Integrated Polimetric/Photometric Extractor
+Doug Arnold Sept 2012
+
+
+CONTENTS
+Introduction 
+Usage
+Tools
+Work Required
+
+
+
+
+INTRODUCTION
+RIPE is a Photometric pipeline for RINGO2 and RINGO3 data. The RINGO series of intruments on the Liverpool Telescope in La Palma, operated by John Moores University, have been developed for rapid polarimetry of variable sources, such as Gamma Ray Bursts (GRBs), Asteroids and other emission processes in astrophysics where strong Magnetic Fields affect emission.
+The scope of RIPE is to take raw data from the RINGO instrments, perform photometry, calculate a calibrated polarimetry, and produce calibrated plots of polarimetry and photometric curves.
+The tools for this are listed as the following;
+
+Task				Tool
+
+Initial Data Reduction 		IRAF    
+Photometry			sExtractor
+Data Management			mySQL
+Plotting 			gnuplot
+Control and Linking 		Perl with DBI
+
+
+
+
+Usage 
+Initial versions of RIPE will be command line based, where a user will need to specify photometry options, quieries and define plotting manually. It is hoped that these tasks can be developed into a UI, but this will only be done if it is felt that user productivity would vastly improve with such features.
+RIPE is little more than a small suite of tools, which allow data from fits files to be extracted, analysed and calibrated and then selected for potting. However, right from the start it has been designed to allow rocessing of large amounts of data, and for the user to be able to perform extraction with many different options upon the data, which can then be compared later. It strives to make tracing back specifics of observations (date, alt, az, telescope settins, camera settings a very easy process, so that the nature and stability of RINGO2/3 observations can be statistically analysed.
+

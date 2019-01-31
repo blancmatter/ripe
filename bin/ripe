@@ -1,0 +1,295 @@
+#!/usr/bin/perl 
+
+
+# Main Perl script for processing RINGO2 fits files and populating grb database
+# Doug Arnold May 2012
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/dma/ripe/lib';
+use ripe;
+
+
+#settings
+
+$rotcheck = 0;
+
+
+
+
+
+# Debug options 
+$DEBUG = 0;
+
+
+
+# Check for TAG
+if (!$ARGV[0]) {
+	print "\nplease add a tag (id / memorable info etc) to label this set added to the db\n";
+	die;
+}
+
+$tag = $ARGV[0];
+
+#############################
+# Obtain list of fits files #
+#############################
+
+
+# Set to local directory
+$basepath=`pwd`;
+chomp $basepath;
+$ripedir = "/home/dma/ripe";
+# Open the directory.
+opendir (DIR, $basepath)
+or die "Unable to open $basepath: $!";
+
+
+# First remove any full stacked files from previous runs
+unlink glob "*F_1.fits";
+
+# Read in the fits files and sort them lexically
+my @files =  sort grep {/fits/} readdir (DIR);
+
+# Close the directory.
+closedir (DIR);
+
+    
+
+# check that we have a multiple of 8 files
+$no_files = @files;
+if ($DEBUG) {
+	print "No of files in Dir: $no_files\n";
+	for (@files) {print "$_\n";}
+}
+
+#if ($no_files%8 != 0){ 
+#  	print "WARNING: Incomplete data set: Number of fits files not multiple of 8\n";
+#  die;
+#}
+    
+
+
+##############################
+# Group files into data sets #
+##############################
+
+
+
+
+
+
+# Create array of only date and obs ID info in file, then remove duplicates using hashes
+for (@files) {
+	push(@data,  substr($_, 0, -8));
+}
+
+my %hash = map { $_ => 1 } @data;
+my @datasets = keys %hash;
+$no_datasets = @datasets;
+if ($DEBUG) { print "No of Datasets: $no_datasets\n"; for (@datasets) {print "$_\n";}}
+
+
+# Create 2d array of datasets and filenames
+
+for $dat (@datasets) {
+	@tmp = grep (/^$dat/ , @files);
+	$no_file = @tmp;
+	
+	if ($no_file != 8) {
+		print "Error: Only $no_file files for dataset $dat. Ignoring this dataset!\n"
+	}
+	
+	else {
+		push @file_array, [ @tmp ];
+	}
+}
+
+######################
+# Open db connection #
+######################
+
+
+
+# PERL DBI CONNECT and Check tables exist
+ripe::db_connect();
+
+
+
+# Grab the sextractor default files and pop in local directory
+copy("$ripedir/config/sex/ripe.param", "$basepath/ripe.param") or die "Copy of params failed: $!";
+
+# Grab the aperture photometry settings
+$apsize = `cat $ripedir/config/sex/ripe.sex | grep PHOT_APERTURES | sed 's/[^0-9:.]*//g'` ;
+$backsize = `cat $ripedir/config/sex/ripe.sex | grep BACKPHOTO_THICK | sed 's/[^0-9:.]*//g'` ;
+
+#################################################
+# Loop through each data set: AKA THE BUSINESS! #
+#################################################
+
+
+# go through each dataset
+for $ds (0 .. ($no_datasets-1)) {
+	if ($DEBUG) {print "\n\nDataset no $ds\n";}
+	
+	
+	$obs_id = substr($file_array[$ds][0], 0 , -8);
+	$camera = substr($file_array[$ds][0], 0 , 1);
+	print "Procesing [$ds/$no_datasets]\t\t$obs_id\r";
+	
+	$fullfile = "${obs_id}F_1.fits";
+	
+	# Create a stack of all 8 orientation files
+	$stack = `imarith.py $file_array[$ds][0] $file_array[$ds][1] $file_array[$ds][2] $file_array[$ds][3] $file_array[$ds][4] $file_array[$ds][5] $file_array[$ds][6] $file_array[$ds][7] $fullfile`;
+	
+	# Grab fits info from 1st file in dataset
+	undef @fits_headers;
+	@fits_headers = ripe::fitsdat($file_array[$ds][0]);
+  
+  
+	# Set the gain value in Source Extractor from the Number of frames
+	# Then get the gain  and numfrms to record in the Database
+	ripe::setgain($file_array[$ds][0]);
+	$gain = ripe::getgain();
+	$numfrms = ripe::numfrms($file_array[$ds][0]);
+  
+  
+  
+	# Populate dataset info into db if not duplicate then perform photometry
+	$insert = $ripe::DB_grb->prepare_cached('INSERT INTO obs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+	if ($insert->execute($obs_id, $camera, $tag, @fits_headers, $numfrms, $gain, $apsize, $backsize)) {
+		# Populate photomertry database
+		phot_tbl();
+	}
+}
+
+ 
+# Finally calculate S1 values in database (for use with standfind)
+$ripe::DB_grb->do('update photdata set S1 = A1 + B1 + C1 + D1 + A2 + B2 + C2 + D2'); 
+ 
+
+# Restore folder to original untouched state
+print "\n";
+ripe::cleanup();
+
+########################################
+##########   END OF CODE ###############
+########################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+######################################
+############## SUBS ##################
+######################################
+
+sub phot_tbl {
+# sextract all sources and populate photometry table 
+  
+  # for each orientation
+  for $o (0 .. 7) { 
+    # Run Sextractor 2>/dev/null
+    
+    # Following line for NORMAL operation
+    $sex=`~/ripe/bin/sex -c $ripedir/config/sex/ripe.sex $fullfile $file_array[$ds][$o] -CATALOG_NAME $o.sex`;
+    
+    # Following line for SKY measurement in 100 x 100 bins of 5x5 pixels
+    # $sex=`ripe-fieldstat $file_array[$ds][$o] > $o.sex`;
+    
+    # Following line for 50 x 50 pixel measurement in centre of field pixel by pixel
+    # $sex=`ripe-centrestat $file_array[$ds][$o] > $o.sex`;
+     
+    # Following line for a single 50 x 50 pixel measurement in centre of field 
+    # $sex=`ripe-singlestat $file_array[$ds][$o] > $o.sex`;
+    
+    
+    if ($rotcheck) {
+	#Check that the header of the file shows correct orientation. Error Checking
+	$rotnumber = `modhead $file_array[$ds][$o] RROTPOS | sed 's/[^1-8]*//g' | sed 's/18//g'`;
+	chomp $rotnumber;
+	if ($rotnumber != $o+1) {
+		print "Failed on file $file_array[$ds][$o]\n";
+		print "Rotator in fits is: $rotnumber\n";
+		$o+=1;
+		print "But in the file array should be: $o\n";
+		die;
+		
+		}
+	}
+  }
+  
+
+  
+  # Open Sextractor file
+  open sex0, "0.sex" or die $!;
+  open sex1, "1.sex" or die $!;
+  open sex2, "2.sex" or die $!;
+  open sex3, "3.sex" or die $!;
+  open sex4, "4.sex" or die $!;
+  open sex5, "5.sex" or die $!;
+  open sex6, "6.sex" or die $!;
+  open sex7, "7.sex" or die $!;
+    
+  
+  
+  # Go through files and pull info of all orientations, and enter them into database
+  $objcount=0;
+  while ($s0 = <sex0>) {
+    
+    $s1 = <sex1>;
+    $s2 = <sex2>;
+    $s3 = <sex3>;
+    $s4 = <sex4>;
+    $s5 = <sex5>;
+    $s6 = <sex6>;
+    $s7 = <sex7>;
+    
+    # if no hash is found as the first character of the first line 
+    if (!($s0 =~ /^\s*#/)){ 
+      $objcount+=1;
+      ($xpix0, $ypix0, $counts0, $counts_err0, $ra0, $dec0, $flag0) = split(" ",$s0);
+      ($xpix1, $ypix1, $counts1, $counts_err1, $ra1, $dec1, $flag1) = split(" ",$s1);
+      ($xpix2, $ypix2, $counts2, $counts_err2, $ra2, $dec2, $flag2) = split(" ",$s2);
+      ($xpix3, $ypix3, $counts3, $counts_err3, $ra3, $dec3, $flag3) = split(" ",$s3);
+      ($xpix4, $ypix4, $counts4, $counts_err4, $ra4, $dec4, $flag4) = split(" ",$s4);
+      ($xpix5, $ypix5, $counts5, $counts_err5, $ra5, $dec5, $flag5) = split(" ",$s5);
+      ($xpix6, $ypix6, $counts6, $counts_err6, $ra6, $dec6, $flag6) = split(" ",$s6);
+      ($xpix7, $ypix7, $counts7, $counts_err7, $ra7, $dec7, $flag7) = split(" ",$s7);
+      
+      chomp $flag0;
+      chomp $flag1;
+      chomp $flag2;
+      chomp $flag3;
+      chomp $flag4;
+      chomp $flag5;
+      chomp $flag6;
+      chomp $flag7;
+      
+      $flag_all = $flag0 + $flag1 + $flag2 + $flag3 + $flag4 + $flag5 + $flag6 + $flag7; 
+      
+      #perform some checking to make sure the lines sync
+      if ($xpix0 != $xpix1 || $xpix0 != $xpix2 || $xpix0 != $xpix3 || $xpix0 != $xpix4 || $xpix0 != $xpix5 || $xpix0 != $xpix6 || $xpix0 != $xpix7) {
+	die "Sextracter output file sync issue at line for Object $objcount in obeservation $obs_id\n;"
+      }
+     
+      # put info into database
+      $insert = $ripe::DB_grb->prepare_cached('INSERT INTO photdata VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+      $insert->execute(null, $obs_id, $tag, null, null, null, $xpix0, $ypix0, $ra0, $dec0, $counts0, $counts1, $counts2, $counts3, $counts4, $counts5, $counts6, $counts7, $counts_err0, $counts_err1, $counts_err2, $counts_err3, $counts_err4, $counts_err5, $counts_err6, $counts_err7, $flag_all, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+    
+    }
+    
+}

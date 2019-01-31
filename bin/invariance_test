@@ -1,0 +1,90 @@
+#!/usr/bin/perl 
+
+
+# Script to go through Phot data and perform calculations on data
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+
+	
+
+
+
+
+
+
+
+($q, $u, $q_err, $u_err) = polcalc($null, $ARGV[0], $ARGV[1], $ARGV[2], $ARGV[3], $ARGV[4], $ARGV[5], $ARGV[6], $ARGV[7], $ARGV[8], $ARGV[9], $ARGV[10], $ARGV[11], $ARGV[12], $ARGV[13], $ARGV[14], $ARGV[15]);
+
+
+print "$q\t$u\t$q_err\t$u_err\n";
+
+($q, $u, $q_err, $u_err) = polcalc($null, $ARGV[1], $ARGV[2], $ARGV[3], $ARGV[4], $ARGV[5], $ARGV[6], $ARGV[7], $ARGV[0], $ARGV[9], $ARGV[10], $ARGV[11], $ARGV[12], $ARGV[13], $ARGV[14], $ARGV[15], $ARGV[8]);
+
+
+$u= -$u;
+
+print "$u\t$q\t$u_err\t$q_err\n";
+
+
+
+
+
+
+
+
+
+
+sub polcalc{
+	$id = $_[0];            
+	$a1 = $_[1];            
+	$b1 = $_[2];            
+	$c1 = $_[3];            
+	$d1 = $_[4];            
+	$a2 = $_[5];            
+	$b2 = $_[6];            
+	$c2 = $_[7];            
+	$d2 = $_[8];            
+	$a1_err = $_[9];            
+	$b1_err = $_[10];           
+	$c1_err = $_[11];           
+	$d1_err = $_[12];           
+	$a2_err = $_[13];           
+	$b2_err = $_[14];           
+	$c2_err = $_[15];           
+	$d2_err = $_[16];
+
+	
+
+	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
+	$s2 = $a1 + $a2 + $b1 + $b2;
+	$s3 = $b1 + $b2 + $c1 + $c2;
+	
+	$s1_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2)+($d1_err**2)+($d2_err**2));
+	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));  
+	$s3_err = sqrt(($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2));
+	
+	
+	# calculate q and u
+	my $q = $pi * (0.5 - ($s3/$s1));
+	my $u = $pi * (($s2/$s1) - 0.5);
+	
+	my $q_err = $pi * sqrt( (($s3_err / $s1)**2) + (($s1_err * $s3 / ($s1**2))**2));
+	my $u_err = $pi * sqrt( (($s2_err / $s1)**2) + (($s1_err * $s2 / ($s1**2))**2));
+	
+	return($q, $u, $q_err, $u_err);
+  
+}
+  
+  
+  
+  
+  

@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+
+# The script takes the values of each bin (8 ARGVs) and jumbles them a number of times, calculating the polarisation for each.
+
+$pi = 3.14159265;
+
+
+
+# Number of polarisation values = 8! / 8 = 7! as there are 8 symetrical polarisation values at each angle when jumbled. No need to calculate them all.
+
+if ($#ARGV != 7) {print "Number of ARGS not 8\n"; die;}
+
+# Calculate polarisation Value
+	$a1=$ARGV[0];
+	$b1=$ARGV[1];
+	$c1=$ARGV[2];
+	$d1=$ARGV[3];
+	$a2=$ARGV[4];
+	$b2=$ARGV[5];
+	$c2=$ARGV[6];
+	$d2=$ARGV[7];
+	$measured_pol = calcpol();
+	
+	print "$measured_pol\n";
+
+open FILE, "/home/disrail/ripe/config/combin.dat" or die;
+
+
+while ($line = <FILE>) {
+	
+	chomp $line;
+	($a, $b, $c, $d, $e, $f, $g, $h) = split(',',$line);
+	
+	if ($a != '#') {
+		
+		$a1=$ARGV[$a-1];
+		$b1=$ARGV[$b-1];
+		$c1=$ARGV[$c-1];
+		$d1=$ARGV[$d-1];
+		$a2=$ARGV[$e-1];
+		$b2=$ARGV[$f-1];
+		$c2=$ARGV[$g-1];
+		$d2=$ARGV[$h-1];
+	
+	
+		$pol[$i] = calcpol();
+		$i++;
+	#	print "$i \t$pol[$i]\n"
+	}
+		
+}
+	
+	
+	
+sub calcpol {
+	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
+	$s2 = $a1 + $a2 + $b1 + $b2;
+	$s3 = $b1 + $b2 + $c1 + $c2;
+	
+	$q = $pi * (0.5 - ($s3/$s1));
+	$u = $pi * (($s2/$s1) - 0.5);
+	$polarisation = sqrt(($q**2)+($u**2));
+	return $polarisation;	
+}
+
+	close FILE;
+	
+@sorted_pol = sort {$a <=> $b} @pol;
+
+# print "@sorted_pol\n";
+
+
+
+$j = 0;
+#while ($measured_pol >= $sorted_pol[$j]) {
+#	$j++;
+#}
+
+#print "Measured polaristaion is ranked as $j out of $i\n";
+
+
+for ($j = 0; $j <= $#pol; $j++) {
+	print "$sorted_pol[$j]\n";
+
+}

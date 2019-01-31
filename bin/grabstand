@@ -1,0 +1,82 @@
+#!/usr/bin/perl 
+
+
+# Script to go through Phot data and perform calculations on data
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+
+
+
+# Open ripe db connection
+ripe::db_connect();
+
+
+
+
+# Take in the standard star and grab data from standards DB
+$object = $ARGV[0];
+$grab = $ripe::DB_grb->prepare("Select object_id, stand_ra, stand_dec from standards");
+$grab->execute();
+
+
+while (@data = $grab->fetchrow_array()) {
+  chomp $data[0];
+  if ( $data[0] eq $object ){
+    @ra_dec = @data;
+  }
+}
+
+if (!$ra_dec[0]) {
+  print "Standard Field not found\n";
+  exit;
+}
+
+print "@ra_dec\n";
+  
+  
+
+
+
+
+
+# Go through each obs of the field and select star id which is closest along with error
+
+# Grab all obs_ids which are of the standard field and push to @obs_list
+$grab = $ripe::DB_grb->prepare("Select obs_id from obs photdata where object like '$object'");
+$grab->execute();
+
+while ($obs = $grab->fetchrow_array()) {
+  
+ print "$obs\n"; 
+ push (@obs_list, $obs);
+}
+
+
+# Foreach observation select the photometric ID which is closest to the standard, with the offset
+
+foreach (@obs_list) {
+  $grab = $ripe::DB_grb->prepare("SELECT ID, ra, decn FROM photdata where obs_id_link like '$_'");
+  $grab->execute();
+  
+  while (@phots = $grab->fetchrow_array()) {
+  
+ print "@phots\n"; 
+ push @points, [@phots];
+
+
+}
+}
+
+
+print "$points[460][0]\n";
+
+# Re-open database and grab the requested quiery from the photmetric points perviously chosen.

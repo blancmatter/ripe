@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+use Math::Trig;
+use Math::Complex;
+use IO::Handle;
+use File::Temp "tempfile";
+$pi = 3.14159265;
+
+# Code to create ellipse of datapoints with added noise
+
+$E = $ARGV[0]; # Ellipticity
+$theta = $ARGV[1] / 180 * $pi; # Angle in radians
+$a = $ARGV[2];
+$b = $a - ($E*$a);
+
+my($T,$N) = tempfile("plot-XXXXXXXX", "UNLINK", 1); 
+
+for ($phi = 0; $phi <= (2*$pi); $phi+=0.05) {
+	$x = $a * cos ($phi);
+	$y = $b * sin ($phi);
+	
+	$angle = atan2($y, $x);
+	$R = sqrt ($x**2 + $y**2);
+	
+	$angle += $theta + randnorm(0,0.17);
+	$R += randnorm(0, $a/50);
+	
+	$x = $R * cos($angle);
+	$y = $R * sin($angle);
+	
+	say $T $x, "\t", $y;
+	
+	
+}
+
+
+
+
+
+close $T;
+open my $P, "|-", "gnuplot" or die; 
+printflush $P qq[
+        unset key
+        set size ratio -1
+        plot "$N" with points lw 3
+]; 
+<STDIN>; 
+close $P;
+
+
+
+
+sub randnorm {
+	# returns a random number of a normal ditribution with FWHM $_[1] centred on $_[0]
+	$num = $_[0] + $_[1] * sqrt(-2 * log rand) * cos(2 * $pi * rand);
+	return ($num);
+}

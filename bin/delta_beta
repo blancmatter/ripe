@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265359;
+$REVERSE = 0;
+# Specialist Code to measure the angles in the sky rotation of RINGO3 and look for any link between  
+
+# offsets to centralise the ellipse. Taken from centre of ellipse fitting
+$q_z = -0.0116;
+$u_z = -0.0478;
+
+if ($ARGV[1] eq "-r") {
+	$REVERSE = 1;
+	#print "RUNNING IN REVERSE MODE\n";
+	# REVERSE mode takes a non ellipse and squashes it along a certain axis, before doing the measurement. This test shows that to create the ellispse from a perfect circle, that points are moved only along the semi major axis (b vector), by comapring with the d_8 data.. 
+	
+	$E = $ARGV[2]; # Ellipticity to squish ellipse
+	$theta = $ARGV[3] / 180 * $pi; # Alignment of ellipse
+}
+
+
+if ($ARGV[1] eq "-r") {
+	$REVERSE = 1;
+	#print "RUNNING IN REVERSE MODE\n";
+	# REVERSE mode takes a non ellipse and squashes it along a certain axis, before doing the measurement. This test shows that to create the ellispse from a perfect circle, that points are moved only along the semi major axis (b vector), by comapring with the d_8 data.. 
+	
+	$E = $ARGV[2]; # Ellipticity to squish ellipse
+	$theta = $ARGV[3] / 180 * $pi; # Alignment of ellipse
+}
+
+open input, "$ARGV[0]" or die $!;
+  
+  
+  
+while ($line = <input>)  {
+	
+	$angleold = $angle;
+	($null, $q, $u, $beta) = split("\t",$line);
+	
+	
+	if ($REVERSE) {
+		$a = sqrt($q**2 + $u**2); #as it's a circle
+		$angle = atan2($u, $q);
+		$phi = $angle - $theta;
+		$b = $a - ($E * $a);
+		$delta_b = ($b - $a) * sin ($phi);
+		#print "$q\t$u\t$a\t$b\t$delta_b\n";
+		$q -= $delta_b * sin($theta);
+		$u += $delta_b * cos($theta);
+		
+	}
+	else {
+		$q -= $q_z;
+		$u -= $u_z;
+	}
+	
+	#print "$q\t$u\t$a\t$b\t$delta_b\n";
+	
+	$angle = atan2($u, $q) * 180 / $pi;
+	$p = sqrt($q**2 + $u**2);
+	
+	$delta_angle = $angle - $angleold;
+	if (abs ($delta_angle) < 10) {    
+	print "$angle\t$delta_angle\t$q\t$u\t$p\n";
+	}
+	
+	
+}
+
+

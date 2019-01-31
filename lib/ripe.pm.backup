@@ -1,0 +1,241 @@
+package ripe;
+
+# Set to local directory
+$basepath=`pwd`;
+chomp $basepath;
+$ripedir = "/home/dma/ripe";
+
+sub db_connect {
+  # CONFIG VARIABLES
+  $platform = "mysql";
+  $database = "test";
+  $user = "disrail";
+  $pw = "diggatrip";
+
+  #DATA SOURCE NAME
+  $dsn = "dbi:mysql:$database";  #:localhost:3306
+  
+  #Connect to db
+  $DB_grb = DBI->connect($dsn, $user, $pw)
+  or die "Cannot connect to database\n";
+  
+  #Events table
+  $DB_grb->do("
+  CREATE TABLE IF NOT EXISTS events (
+  grb_id VARCHAR(16),
+  t_trig INT(32),
+  moon_stat ENUM('U','D'),
+  moon_frac FLOAT(2,0),
+  moon_dist FLOAT(5,3),
+  moon_alt FLOAT(5,3),
+  xrt_ra_deg FLOAT(5,3),
+  xrt_dec_deg FLOAT(5,3),
+  primary KEY (grb_id))")
+  or die "Could not Create Table: $DBI::errstr";
+  
+  #Obs table
+  $DB_grb->do("
+  CREATE TABLE IF NOT EXISTS obs (
+  obs_id VARCHAR(16), 
+  tag VARCHAR(16),
+  object VARCHAR(40),
+  date VARCHAR(8),
+  wcs_ra FLOAT(8,4),
+  wcs_dec FLOAT(8,4),
+  alt FLOAT(8,4),
+  az FLOAT(8,4),
+  rotmount FLOAT(5,3),
+  rotskypa FLOAT (6,3),
+  ut_start INT(32),
+  t_exp FLOAT(10,4),
+  t_dur FLOAT(10,4),
+  apsize INT(16),
+  backsize INT(16),
+  primary KEY (obs_id, tag))")
+  or die "Could not Create Table: $DBI::errstr";
+  
+  # create phot table
+  $DB_grb->do("
+  CREATE TABLE IF NOT EXISTS photdata (
+  id INT (16) primary key auto_increment,
+  obs_id_link VARCHAR(16),
+  tag_link VARCHAR(16),   
+  grb ENUM('Y','N', 'S'),
+  xpix FLOAT(6,3),
+  ypix FLOAT(6,3),
+  ra FLOAT(8,5),
+  decn FLOAT(8,5),
+  A1 FLOAT(12,3),
+  B1 FLOAT(12,3),
+  C1 FLOAT(12,3),
+  D1 FLOAT(12,3),
+  A2 FLOAT(12,3),
+  B2 FLOAT(12,3),
+  C2 FLOAT(12,3),
+  D2 FLOAT(12,3),
+  A1_err FLOAT(12,3),
+  B1_err FLOAT(12,3),
+  C1_err FLOAT(12,3),
+  D1_err FLOAT(12,3),
+  A2_err FLOAT(12,3),
+  B2_err FLOAT(12,3),
+  C2_err FLOAT(12,3),
+  D2_err FLOAT(12,3), 
+  flag INT(8),
+  S1 FLOAT(13,3),
+  S2 FLOAT(13,3),
+  S3 FLOAT(13,3),
+  q FLOAT(8,7),
+  u FLOAT(8,7),
+  p FLOAT(8,7),
+  beta FLOAT(8,3))");
+  
+   #Events table
+  $DB_grb->do("
+  CREATE TABLE IF NOT EXISTS standards (
+  object_id VARCHAR(16),
+  stand_ra FLOAT(8,5),
+  stand_dec FLOAT(8,5),
+  mag FLOAT(5,3),
+  v_pol FLOAT (5,4),
+  r_pol FLOAT (5,4),
+  primary KEY (object_id))")
+  or die "Could not Create Table: $DBI::errstr";
+  
+}
+
+
+
+
+
+
+
+
+sub fitsdat {
+
+  # Grab following FITS header data
+  # parse to values and return following array
+  
+  # TODO !Need to convert ut_start into ut_secs
+
+  ###############################
+  # [0] OBJECT                  #
+  # [1] DATE                    #
+  # [2] RA (WCS Ref Pixel) (deg)#
+  # [3] DEC (WCS ref Pixel)(deg)#
+  # [4] ALTITUDE   (deg)        #
+  # [5] AZIMUTH    (deg)        #
+  # [6] ROTANGLE   (deg)        #
+  # [7] ROTSKYPA   (deg)        #
+  # [8] UTSTART    (ut sec)     #
+  # [9] EXPTIME    (sec)        #
+  # [10] DURATION  (sec)        #
+  ###############################
+    
+    # Clear return array frrom previous runs
+    undef @return;
+    
+    $obj = `modhead $_[0] object`;
+    chomp $obj;
+    ($null, $obj, $null) = split(/'/, $obj);
+    push (@return, $obj);
+    if ($DEBUG) { print "$obj\n";}
+    
+    
+    $date = `modhead $_[0] date | sed 's/[^0-9]*//g' `;
+    chomp $date;
+    push (@return, $date);
+    if ($DEBUG) { print "Date: $date\n";}
+    
+    
+    $ra = `modhead $_[0] ra | sed 's/[^0-9:.]*//g'`;
+    chomp $ra;
+    if ($DEBUG) { print "RA: $ra\n";}
+    ($ra_hr, $ra_min, $ra_sec) =  split (':',$ra);
+    $ra = ($ra_hr * 15) + ($ra_min / 4) + ($ra_sec / 240);
+    push (@return, $ra);
+    if ($DEBUG) { print "RA: $ra\n";}
+    
+    
+    $dec = `modhead $_[0] dec | sed 's/[^0-9:.+-]*//g'`;
+    chomp $dec;
+    ($dec_deg, $dec_min, $dec_sec) =  split (':',$dec);
+    $dec = $dec_deg + ($dec_min / 60) + ($dec_sec / 3600);
+    push (@return, $dec);
+    if ($DEBUG) { print "Dec: $dec\n";}
+    
+    
+    $alt = `modhead $_[0] altitude | sed 's/[^0-9.]*//g'`;
+    chomp $alt;
+    push (@return, $alt);
+    if ($DEBUG) { print "Alt: $alt\n";}
+    
+    
+    $az = `modhead $_[0] azimuth | sed 's/[^0-9.]*//g'`;
+    chomp $az;
+    push (@return, $az);
+    if ($DEBUG) { print "Az: $az\n";}
+    
+    
+    $rotmount = `modhead $_[0] rotangle | sed 's/[^0-9.+-]*//g'`;
+    chomp $rotmount;
+    push (@return, $rotmount);
+    if ($DEBUG) { print "Rotmount: $rotmount\n";}
+    
+    
+    $rotsky = `modhead $_[0] rotskypa | sed 's/[^0-9.+-]*//g'`;
+    chomp $rotsky;
+    push (@return, $rotsky);
+    if ($DEBUG) { print "Rotsky: $rotsky\n";}
+
+    
+    $t_start = `modhead $_[0] utstart| sed 's/[^0-9:.]*//g'`;
+    chomp $t_start;
+    push (@return, $t_start);
+    if ($DEBUG) { print "$t_start\n";}
+    
+    
+    $t_exp = `modhead $_[0] exptime | sed 's/[^0-9.]*//g'`;
+    chomp $t_exp;
+    push (@return, $t_exp);
+    if ($DEBUG) { print "$t_exp\n";}
+    
+    
+    $t_dur = `modhead $_[0] duration | sed 's/[^0-9:.+-]*//g'`;
+    chomp $t_dur;
+    push (@return, $t_dur);
+    if ($DEBUG) { print "$t_dur\n";}
+
+
+    return (@return);
+  
+    
+}
+
+
+
+sub cleanup {
+ # Clean up directory of all unwanted files
+ 
+ unlink glob "*.sex";
+ unlink glob "*.param";
+ 
+ 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#need PM to end with 1??
+1;

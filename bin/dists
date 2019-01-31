@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+
+# Main Perl script for processing RINGO2 fits files and populating grb database
+# Doug Arnold May 2012
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use Math::Trig;
+use Math::Complex;
+use lib '/home/dma/ripe/lib';
+use ripe;
+
+
+
+
+
+
+
+while ($i < 60000) {
+	$i++;
+	$q = ripe::randnorm($ARGV[0], $ARGV[1]);
+	$u = ripe::randnorm($ARGV[2], $ARGV[3]);
+	$p = sqrt($q**2 + $u**2);
+	print "$q\t$u\t$p\n";
+}

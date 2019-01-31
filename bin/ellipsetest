@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Ellipse test harness
+
+
+
+for angle in {0..180..3}
+
+do
+	echo -n "$angle "
+	make_ellipse 0.6 $angle 1 > data.dat
+	fitellipse.py data.dat 2>/dev/null
+done

@@ -1,0 +1,39 @@
+set terminal pdfcairo
+
+
+set title "Stokes Parameters of sources in field of OBS_ID"
+#set samples 200, 200
+set xlabel "Magnitude"
+#set ylabel "Normalised Stokes Parameter Value"
+
+set style line 1 ps 0.5 pt 7 lt 1 lc 7 lw 1.65
+set style line 2 ps 0.5 pt 7 lt 1 lc 1 lw 1.65
+unset key
+
+
+NX=1; NY=2
+DX=0.1; DY=0.2; SX=0.85; SY=0.35
+set bmargin DX; set tmargin DX; set lmargin DY; set rmargin DY
+## set the margin of each side of a plot as small as possible
+## to connect each plot without space
+set size SX*NX+DX*1.5,SY*NY+DY*1.8
+set multiplot
+##—— First Figure–Bottom
+set size SX,SY
+set xrange [12:MAG_UPPER]
+set yrange [-0.15:0.15]
+set label 1 'Stokes Parameter u' at 14,0.1 
+
+set ytic -0.3,0.1,0.3 ### from -0.6 to 0.6 with 0.3 interval
+set origin DX,DY;
+plot 'field.dat' using 1:3:5 with yerrorbars ls 1, 'grb.dat' using 1:3:5 with yerrorbars ls 2
+plot 0*x
+###——Second Figure—Top
+set origin DX,DY+SY;
+unset xtics
+unset xlabel
+unset ylabel
+unset label 1
+set label 2 'Stokes Parameter q' at 14,0.1
+plot 'field.dat' using 1:2:4 with yerrorbars ls 1, 'grb.dat' using 1:2:4 with yerrorbars ls 2
+plot 0*x

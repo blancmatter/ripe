@@ -1,0 +1,125 @@
+#!/usr/bin/perl 
+
+
+# Script to go through Phot data and perform calculations on data of RINGO2 GRB sample
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+$counter =0;
+
+
+
+
+
+
+
+
+print "Running with Calibration options\n\n";
+   
+
+# Debug options 
+$DEBUG = 0;
+
+
+
+
+
+# Open connection
+ripe::db_connect();
+
+#Prepare input quiery
+$input = $ripe::DB_grb->prepare('UPDATE photdata SET S1 = ?, S2 = ?, S3 = ?, q = ?, u = ?, q_err = ?, u_err = ?, p = ?, p_err_minus = ?, p_err_plus = ?, beta = ?, beta_err = ? WHERE id = ?'); 
+
+#Grab data
+$grab= $ripe::DB_grb->prepare("Select id, a1, b1, c1, d1, a2, b2, c2, d2, a1_err, b1_err, c1_err, d1_err, a2_err, b2_err, c2_err, d2_err, p, date from photdata, obs where obs_id_link=obs_id");
+$grab->execute(); 
+
+
+  
+#go through each row  
+while (@data = $grab->fetchrow_array()){
+  
+	$id = $data[0];            
+	$a1 = $data[1];            
+	$b1 = $data[2];            
+	$c1 = $data[3];            
+	$d1 = $data[4];            
+	$a2 = $data[5];            
+	$b2 = $data[6];            
+	$c2 = $data[7];            
+	$d2 = $data[8];            
+	$a1_err = $data[9];            
+	$b1_err = $data[10];           
+	$c1_err = $data[11];           
+	$d1_err = $data[12];           
+	$a2_err = $data[13];           
+	$b2_err = $data[14];           
+	$c2_err = $data[15];           
+	$d2_err = $data[16];
+	$pol = $data[17];
+	$date = $data[18];
+	
+	
+	# obtain correct inst pol corrections for GRB date 
+	@calibrations = ripe::get_calibrations($date);	
+	if ($#calibrations != 7 || !@calibrations) {
+		die "Error: rankplot --> problem with get_calibrations()\n";
+	}
+	
+	# apply calibrations
+	$a1 /= $calibrations[0];
+	$b1 /= $calibrations[1];
+	$c1 /= $calibrations[2];
+	$d1 /= $calibrations[3];
+	$a2 /= $calibrations[4];
+	$b2 /= $calibrations[5];
+	$c2 /= $calibrations[6];
+	$d2 /= $calibrations[7];
+	
+
+	
+	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
+	$s2 = $a1 + $a2 + $b1 + $b2;
+	$s3 = $b1 + $b2 + $c1 + $c2;
+	
+	$s1_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2)+($d1_err**2)+($d2_err**2));
+	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));  
+	$s3_err = sqrt(($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2));
+	
+	
+	# calculate q and u
+	$q = $pi * (0.5 - ($s3/$s1));
+	$u = $pi * (($s2/$s1) - 0.5);
+	
+	$q_err = $pi * sqrt( (($s3_err / $s1)**2) + (($s1_err * $s3 / ($s1**2))**2));
+	$u_err = $pi * sqrt( (($s2_err / $s1)**2) + (($s1_err * $s2 / ($s1**2))**2));
+	
+	# Calculate polarisation
+	($pol, $pol_err_minus, $pol_err_plus) = ripe::mcerror($q, $u, $q_err, $u_err);
+	
+	# If non zero calculate angle
+	if ($q != 0 && $u != 0) { # Stops division by zero.
+		$beta = (atan2 $u,$q) / 2; # See atan2 and why the normal atan function does not work here.
+		$uOVERq_err = sqrt ((($u_err / $u)**2) + (($q_err / $q)**2)) * ($u / $q);
+		$beta_err = $uOVERq_err / (1 + (($u / $q)**2)) / (2 * $pi) * 360;
+		$beta_deg = (($beta / (2 * $pi)) * 360) + 90;
+	}
+	# print "$id\n"; 
+	$input->execute($s1, $s2, $s3, $q, $u, $q_err, $u_err, $pol, $pol_err_minus, $pol_err_plus, $beta_deg, $beta_err, $id);
+	$counter++;
+	print "Processed: $counter\r";
+	print "\r";
+	
+}
+  
+  
+  
+	

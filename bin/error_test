@@ -1,0 +1,23 @@
+#!/usr/bin/perl 
+
+
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+
+print "#q_val\tu_val\tq_err\tu_err\tp_is\tpminus_is\tpplus_is\tp_is\tpminus_is\tpplus_is\tp_dk\tpminus_dk\tpplus_dk\n";
+
+
+for ($q_val=0; $q_val<
+
+
+	($p_is, $pminus_is, $pplus_is) = ripe::mcerror($q_val, $u_val, $q_err, $u_err);
+	($p_is, $pminus_is, $pplus_is) = ripe::mcerror_doug($q_val, $u_val, $q_err, $u_err);
+	($p_dk, $pminus_dk, $pplus_dk) = ripe::mcerror_drejc($q_val, $u_val, $q_err, $u_err);
+
+	print "$q_val\t$u_val\t$q_err\t$u_err\t$p_is\t$pminus_is\t$pplus_is\t$p_is\t$pminus_is\t$pplus_is\t$p_dk\t$pminus_dk\t$pplus_dk\n";

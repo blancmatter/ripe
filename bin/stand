@@ -1,0 +1,63 @@
+#!/usr/bin/perl 
+
+
+# Script to go through standards list and populate standards database.
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+$debug = 1;
+
+
+# A perl script to enter standard star info into a the GRB database
+
+# PERL DBI CONNECT and Check tables exist
+ripe::db_connect();
+
+# Delete all from standards list
+$delete = $ripe::DB_grb->prepare("delete from standards.standards") ;
+$delete->execute();
+
+# Insertion quiery
+$insert = $ripe::DB_grb->prepare_cached('INSERT INTO standards.standards VALUES (?,?,?,?,?,?,?)');
+
+#read in the config file of standards
+open standards, "$ripe::ripedir/config/standards/standards.lst" or die $!;
+ 
+ 
+ 
+while (<standards>){
+	 #print "$_";
+	 
+	 chomp $_;
+	 ($object, $ra, $dec, $type) = split(/\t/, $_);
+	 
+	 
+	if ($debug) {
+		 print "Object: $object\n";
+		 print "RA: $ra\n";
+		 print "Dec: $dec\n";
+		 
+	}
+	 
+	 
+	 $ra = ripe::ra2angle($ra);
+	 $dec = ripe::dec2angle($dec);
+	 
+	 if ($debug) {
+		 print "RA: $ra\n";
+		 print "Dec: $dec\n\n";
+		 
+	}
+	
+	
+	$insert->execute($object,$ra,$dec,$type,$null,$null,$null);
+	 
+}

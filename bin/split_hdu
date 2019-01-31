@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+#############################
+# Obtain list of fits files #
+#############################
+
+
+# Set to local directory
+$basepath=`pwd`;
+chomp $basepath;
+$ripedir = "/home/disrail/ripe";
+# Open the directory.
+opendir (DIR, $basepath)
+or die "Unable to open $basepath: $!";
+
+# Read in the fits files and sort them lexically
+my @filelist =  sort grep {/fits/} readdir (DIR);
+
+# Close the directory.
+closedir (DIR);
+
+
+for ($i = 0; $i < $#filelist+1; $i++) {
+	$no_ext = `listhead $filelist[$i] | grep HDU | wc -l`;
+	chomp $no_ext;
+	print "$filelist[$i]\t$no_ext extensions in this file\n";
+	
+	
+	
+	for ($ext = 0; $ext < $no_ext; $ext++) {
+		$file_ext = join "", $filelist[$i],'[', $ext, ']';
+		$newfile =  `echo $filelist[$i] | sed 's/_0_/_${ext}_/g'`;
+		chomp $newfile;
+		$do_split = `imcopy $file_ext splitdata/$newfile`;
+		
+		
+	}
+	
+}
+

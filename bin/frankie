@@ -1,0 +1,98 @@
+#!/usr/bin/perl
+
+
+open infile, "$ARGV[1]";
+$setSize=$ARGV[0];
+print "# S1Av qav uav pav S1std qstd ustd pstd\n";
+#read in file data to a 2-d array   $data_array[row][column]
+while  (<infile>) {
+    $line = $_;
+    chomp $line;
+    ($id, $S1, $q, $u, $p) = split("\t", $line);
+    push @S1_array, $S1;
+    push @q_array, $q;
+    push @u_array, $u;
+    push @p_array, $p;
+}
+
+close infile;
+
+$noRows = $#S1_array + 1;
+
+$rowCount = 0;
+$ticker = 0; 
+
+while ($rowCount < $noRows) {
+  
+  push @S1_data, $S1_array[$rowCount];
+  push @q_data, $q_array[$rowCount];
+  push @u_data, $u_array[$rowCount];
+  push @p_data, $p_array[$rowCount]; 
+  
+  # When sample size is big enough
+  if ($ticker >= $setSize) {
+   $ticker = 0;
+   calculate();
+  }
+  
+  
+  $ticker+=1;
+  $rowCount+=1;
+}
+  
+calculate();
+
+
+
+
+
+
+
+############
+### SUBS ##
+##########
+
+sub calculate() {
+    $S1_average = average(\@S1_data);
+    $q_average = average(\@q_data);
+    $u_average = average(\@u_data);
+    $p_average = average(\@p_data);
+    
+    $S1_stdev = stdev(\@S1_data);
+    $q_stdev = stdev(\@q_data);
+    $u_stdev = stdev(\@u_data);
+    $p_stdev = stdev(\@p_data);    
+    
+    undef @S1_data;
+    undef @q_data;
+    undef @u_data;
+    undef @p_data;
+    
+    print "$S1_average\t$q_average\t$u_average\t$p_average\t$S1_stdev\t$q_stdev\t$u_stdev\t$p_stdev\n";
+}
+
+sub average{
+        my($data) = @_;
+        if (not @$data) {
+                die("Empty array\n");
+       }
+        my $total = 0;
+        foreach (@$data) {
+                $total += $_;
+        }
+        my $average = $total / @$data;
+        return $average;
+}
+sub stdev{
+        my($data) = @_;
+        if(@$data == 1){
+                return 0;
+        }
+        my $average = &average($data);
+        my $sqtotal = 0;
+        foreach(@$data) {
+                $sqtotal += ($average-$_) ** 2;
+        }
+        my $std = ($sqtotal / (@$data-1)) ** 0.5;
+        return $std;
+}

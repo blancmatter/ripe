@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+
+#open ds9
+
+system("ds9 &");
+sleep 8;
+
+#load 8 frames
+
+$scale=`xpaset -p ds9 zscale`;
+$load=`xpaset -p ds9 file $ARGV[0]`;
+$load=`xpaset -p ds9 file new $ARGV[1]`;
+$load=`xpaset -p ds9 file new $ARGV[2]`;
+$load=`xpaset -p ds9 file new $ARGV[3]`;
+$load=`xpaset -p ds9 file new $ARGV[4]`;
+$load=`xpaset -p ds9 file new $ARGV[5]`;
+$load=`xpaset -p ds9 file new $ARGV[6]`;
+$load=`xpaset -p ds9 file new $ARGV[7]`;
+
+$blink=`xpaset -p ds9 blink yes`;
+sleep 10;
+
+$blink=`xpaset -p ds9 blink no`;
+
+$imexam=`xpaget ds9 imexam coordinate image`;
+
+print "Coordinates!!: $imexam\n\n";
+
+
+ 

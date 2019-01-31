@@ -1,0 +1,4 @@
+gcc -o ../output source.c -lcfisio
+
+the -l option must be at the end of the gcc line
+

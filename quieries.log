@@ -1,0 +1,1 @@
+test.out.dat	SELECT obs_id_link, xpix, ypix, ra, decn, S1, p, tag_link from photdata where tag_link='8' and obs_id_link='p_e_20110806_8' order by S1

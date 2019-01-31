@@ -1,0 +1,19 @@
+#!/usr/bin/perl 
+
+
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use xpa;
+
+
+
+ripe::db_connect();
+ripe::field_correct($ARGV[0],$ARGV[1]);
+
+

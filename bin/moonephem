@@ -1,0 +1,23 @@
+#!/usr/bin/python
+
+# moonephem date time
+# return moon ra dec altitude and phase
+
+# input MUST be of the form with dashes and colons "yyyy-mm-dd hh:mm:ss"
+
+import ephem
+import sys
+
+lt = ephem.Observer()
+lt.lon = '-17:52:753'
+lt.lat = '28:45.747'
+lt.elevation = 2363
+lt.date = sys.argv[1]
+
+
+m = ephem.Moon()
+m.compute(lt)
+print m.a_ra, m.a_dec, m.alt, m.moon_phase
+
+
+

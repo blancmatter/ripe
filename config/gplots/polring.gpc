@@ -1,0 +1,15 @@
+set terminal pdfcairo size 6, 6 font " ,10"
+set size 1, 1
+set key off
+#set title "Stokes Parameters of Polarised Standard HILT 960"
+#set samples 200, 200
+set size ratio -1
+set xlabel "Normalised Stokes parameter q"
+set ylabel "Normalised Stokes parameter u"
+set xrange [-0.1:0.1]
+set yrange [-0.1:0.1]
+set object circle at 0,0 size first 0.08947 fc rgb "grey"
+set style line 1 ps 0.65 pt 7 lt 1 lc 1 lw 1.65
+set style line 2 ps 0.65 pt 7 lt 1 lc 3 lw 1.65
+set style line 3 ps 0.65 pt 7 lt 1 lc 2 lw 1.65
+plot 'VICyg_data.dat' using 2:3 ls 1 

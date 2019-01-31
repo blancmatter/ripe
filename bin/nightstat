@@ -1,0 +1,57 @@
+#!/usr/bin/perl 
+
+
+#Get average q and u values and stddevs and standard errors from each night
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+$counter =1;
+
+
+# set to tab delimited output for arrays instead of space
+local $" = "\t";
+
+# Open connection
+ripe::db_connect();
+
+
+#Grab data
+$dates= $ripe::DB_grb->prepare("Select distinct(date) from obs where object like '%zpol'");
+$dates->execute(); 
+
+
+  
+#go through each row  
+while ($date = $dates->fetchrow_array()){
+	 
+	 #Grab data
+	$d_grab= $ripe::DB_grb->prepare("Select count(p), avg(q), avg(u), stddev(q), stddev(u), (stddev(q) / sqrt(count(p))), (stddev(u) / sqrt(count(p))) from photdata, obs where obs_id = obs_id_link and date='$date' and camera='d' and object like'%zpol%' and S1 > 1000");
+	$d_grab->execute();
+	
+	$e_grab= $ripe::DB_grb->prepare("Select count(p), avg(q), avg(u), stddev(q), stddev(u), (stddev(q) / sqrt(count(p))), (stddev(u) / sqrt(count(p))) from photdata, obs where obs_id = obs_id_link and date='$date' and camera='e' and object like'%zpol%' and S1 > 1000");
+	$e_grab->execute();
+	
+	$f_grab= $ripe::DB_grb->prepare("Select count(p), avg(q), avg(u), stddev(q), stddev(u), (stddev(q) / sqrt(count(p))), (stddev(u) / sqrt(count(p))) from photdata, obs where obs_id = obs_id_link and date='$date' and camera='f' and object like'%zpol%' and S1 > 1000");
+	$f_grab->execute();
+	 
+	
+	@d_data = $d_grab->fetchrow_array();
+	@e_data = $e_grab->fetchrow_array();
+	@f_data = $f_grab->fetchrow_array();
+	
+	print "@d_data\t@e_data\t@f_data\n";
+	
+	
+}
+
+
+
+

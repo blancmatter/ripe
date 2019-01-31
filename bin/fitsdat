@@ -1,0 +1,93 @@
+#!/usr/bin/perl 
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/Users/disrail/ripe/lib';
+use ripe;
+
+
+# Debug options 
+$DEBUG = 0;
+
+
+
+#############################
+# Obtain list of fits files #
+#############################
+
+
+# Set to local directory
+$basepath=`pwd`;
+chomp $basepath;
+$ripedir = "/home/dma/ripe";
+# Open the directory.
+opendir (DIR, $basepath)
+or die "Unable to open $basepath: $!";
+
+# Read in the fits files and sort them lexically
+my @files =  sort grep {/fits/} readdir (DIR);
+
+# Close the directory.
+closedir (DIR);
+
+    
+
+# check that we have a multiple of 8 files
+$no_files = @files;
+if ($DEBUG) {
+  print "No of files in Dir: $no_files\n";
+  for (@files) {print "$_\n";}
+}
+
+if ($no_files%8 != 0){ 
+  print "WARNING: Incomplete data set: Number of fits files not multiple of 8\n";
+  die;
+}
+    
+
+
+##############################
+# Group files into data sets #
+##############################
+
+
+# Create array of only date and obs ID info in file, then remove duplicates using hashes
+for (@files) {
+  push(@data,  substr($_, 0, - 11));
+}
+
+my %hash = map { $_ => 1 } @data;
+my @datasets = keys %hash;
+$no_datasets = @datasets;
+if ($DEBUG) { print "No of Datasets: $no_datasets\n"; for (@datasets) {print "$_\n";}}
+
+
+# Create 2d array of datasets and filenames
+
+for $test (@datasets) {
+  @tmp = grep (/^$test/ , @files);
+  push @file_array, [ @tmp ];
+}
+    
+
+
+
+# go through each dataset
+for $ds (0 .. ($no_datasets-1)) {
+  if ($DEBUG) {print "\n\nDataset no $ds\n";}
+  
+  $obs_id = substr($file_array[$ds][0], 0 , -11);
+  
+  
+
+  # Grab fits info from 1st file in dataset
+  undef @fits_headers;
+  @fits_headers = ripe::fitsdat($file_array[$ds][0]);
+  
+  print "@fits_headers\n";
+  
+  
+}

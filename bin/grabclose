@@ -1,0 +1,143 @@
+#!/usr/bin/perl 
+
+
+# Script to go through Phot data and perform calculations on data
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+$cut = 1.5; # Default value
+
+
+
+
+foreach my $a (0..$#ARGV) {
+
+    ### help
+    if ($ARGV[0] eq "-h") {
+    	printhelp();
+    }
+            
+    ### degree mode
+    elsif ($ARGV[$a] eq "-d") {
+		$d=1;
+		$target_ra = $ARGV[$a+1];
+		$target_dec = $ARGV[$a+2];
+		
+    }
+
+    ### detection circle size 
+    elsif ($ARGV[$a] eq "-c") {
+      
+		$cut = $ARGV[$a+1];
+    }
+   
+}
+
+
+
+
+if (!$d) {
+  $hrs = $ARGV[0];
+  $min = $ARGV[1];
+  $sec = $ARGV[2];
+  
+  $deg = $ARGV[3];
+  $arcmin = $ARGV[4];
+  $arcsec = $ARGV[5];
+
+  $target_ra = (($hrs/24) + ($min/1440) + ($sec/86400)) * 360;
+  if ($deg < 0){
+	$target_dec = ($deg - ($arcmin / 60) - ($arcsec / 3600));
+  }
+  else {
+	$target_dec = ($deg + ($arcmin / 60) + ($arcsec / 3600));
+  }
+
+}
+
+print "RA in degrees is: $target_ra\n";
+print "Dec in degrees is: $target_dec\n";
+
+if ($target_ra > 360 || $target_ra < 0 || abs($target_dec) > 90 || $cut > 240) {
+	print "Parameters are not correct\n\n";
+	exit;
+}
+
+#Calculate RA and Dec cut in degrees. RA cut is in spherical co-ords
+$dec_cut =  $cut / 3600;
+$target_dec_rad = $target_dec / 360 * 2 * $pi;
+$ra_cut = $dec_cut; #* cos($target_dec_rad);
+
+# Open ripe db connection
+ripe::db_connect();
+
+# Grab the number of observations which contain this RA and Dec
+$grab = $ripe::DB_grb->prepare("select count(object) from obs where ABS(wcs_ra - $target_ra) < (0.045*cos($target_dec_rad)) and ABS(wcs_dec - $target_dec) < 0.045");
+$grab->execute();
+
+$match_obs = $grab->fetchrow_array();
+print "Number of matching Observations: $match_obs\n";
+
+
+#Grab the data
+
+$grab = $ripe::DB_grb->prepare("select $ARGV[$#ARGV] from photdata, obs where obs_id_link=obs_id and ABS(ra - $target_ra) < ($ra_cut) and ABS(decn - $target_dec) < $dec_cut and camera='d' and mjd>56392");
+$grab->execute();
+
+print "select $ARGV[$#ARGV] from photdata, obs where obs_id_link=obs_id and ABS(ra - $target_ra) < ($ra_cut) and ABS(decn - $target_dec) < $dec_cut\n";
+
+
+# Print to outfile
+
+
+open OUT, ">out.dat";  #for printing into topcat....
+
+$ARGV[$#ARGV] =~ s/,//g;
+print OUT "# id $ARGV[$#ARGV]\n";
+$n=0;
+while (@out = $grab->fetchrow_array()) {
+	
+	$n+=1;
+print "$n\t@out\n";
+print OUT "$n\t@out\n";
+
+	
+}
+
+print "$n records found\n";
+
+
+
+
+
+############################################
+##########   SUBS   
+############################################
+
+
+sub printhelp {
+  open HELP, "| more";
+  print <<EndHelp;
+Usage: grabclose (-d) ra dec (-c n) "SQL fields"
+
+where ra and dec are expressed as HH MM SS DD MM SS
+
+Optional switches
+      -d	Enter ra and dec of object in decimals instead of HH MM SS
+      -c n	Circle value in arcseconds where objects will be detected. Default is 1.5 arcsec 
+      
+
+EndHelp
+  close HELP;
+die "\n";
+}
+
+

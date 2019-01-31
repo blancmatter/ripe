@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+
+# Monte carlo script as per Monte carlo simulation used for Polarimetric detection in GRB06xxxx in Science (Mundell et al, 2006)
+# The script takes the values of each bin (8 ARGVs) and jumbles them a number of times, calculating the polarisation for each.
+
+# 09/01/14 WORKS WELL!!  However, with a limited number of options the Monte Carlo method is a little outdated. We are able to calculate polarisation for every order of the bins and thi is the way forward. See jumble script.
+$pi = 3.14159265;
+$iterations = 10000;
+
+
+# Go through the number of iterations in the simulation producing an array of polarisations in @pol which are outputed at the end.
+for ($i = 0; $i < $iterations; $i+=1) {
+	
+	
+	# Pick the orientations randomly and assign to polarray for calculation
+	for ($j = 0; $j < 8; $j+=1) {
+		
+		# Pick an oreientation
+		$num = int (rand (8));
+		
+		# While an orientation has been picked, pick another
+		while ($numlock[$num] == 1) {
+			$num = int (rand (8));
+		}
+	
+		# Lock the current orientation to prevent repicking
+		$numlock[$num] = 1;
+		
+		# Asign value of orientation to polarray
+		$polarray[$j] = $ARGV[$num];
+		
+	}
+	
+	#reset the numlock
+	undef @numlock;
+	
+	$a1 = $polarray[0];        
+	$b1 = $polarray[1];            
+	$c1 = $polarray[2];            
+	$d1 = $polarray[3];            
+	$a2 = $polarray[4];            
+	$b2 = $polarray[5];            
+	$c2 = $polarray[6];            
+	$d2 = $polarray[7];     
+	
+	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
+	$s2 = $a1 + $a2 + $b1 + $b2;
+	$s3 = $b1 + $b2 + $c1 + $c2;
+	
+	$q = $pi * (0.5 - ($s3/$s1));
+	$u = $pi * (($s2/$s1) - 0.5);
+	$polarisation = sqrt(($q**2)+($u**2));
+	
+	
+	print "$pol[$i]\n";
+	
+	
+}
+

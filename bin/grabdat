@@ -1,0 +1,60 @@
+#!/usr/bin/perl 
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/dma/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+
+# Debug options 
+$DEBUG = 0;
+
+
+# set to tab delimited output for arrays instead of space
+local $" = "\t";
+
+# Write to record file the quiery if final filename output
+if ($ARGV[1]) {
+  open LOG,  ">>quieries.log";
+  open OUT, ">$ARGV[1]";
+  print LOG "$ARGV[1]\t$ripe::database\t$ARGV[0]\n";
+ # print OUT "# $ARGV[0]\n"; #Need to add column headings here
+}
+
+
+
+
+# Open connection
+ripe::db_connect();
+
+# Grab data
+$grab= $ripe::DB_grb->prepare("$ARGV[0]");
+$grab->execute(); 
+
+if ($ARGV[1]) {
+	print OUT "# $ARGV[0]\n";
+}
+
+# Output to file
+$row = 1;
+while (@data = $grab->fetchrow_array()){
+  
+  
+  if ($ARGV[1]) {
+    print OUT "$row\t@data\n";
+  }
+  else {
+    print "@data\n";
+  }
+  $row += 1;
+}
+
+
+
+
+close LOG;
+close OUT;

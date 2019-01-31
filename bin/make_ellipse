@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+
+# Code to create ellipse of datapoints with added noise
+
+$E = $ARGV[0]; # Ellipticity
+$theta = $ARGV[1] / 180 * $pi; # Angle in radians
+$a = $ARGV[2];
+$b = $a - ($E*$a);
+
+
+
+for ($phi = 0; $phi <= (2*$pi); $phi+=0.06) {
+	$x = $a * cos ($phi);
+	$y = $b * sin ($phi);
+	$phi_deg = $phi / $pi * 180;
+	
+	$angle = atan2($y, $x);
+	$R = sqrt ($x**2 + $y**2);
+	
+	$angle += $theta; #+ randnorm(0,0.0000001); 
+	#$R += randnorm(0, $a/800000);
+	
+	$x = $R * cos($angle);
+	$y = $R * sin($angle);
+	$Ellipse_check = ($x**2 / $a**2) + ($y**2 / $b**2) ;  # Should be = 1 for ellipse centred on 0,0 with theta = 0
+	
+	#print "$Ellipse_check\t$phi_deg\t0\t0\t0\t0\t0\t$x\t$y\n";
+	print "$Ellipse_check\t$x\t$y\n";
+}
+
+
+
+sub randnorm {
+	# returns a random number of a normal ditribution with FWHM $_[1] centred on $_[0]
+	$num = $_[0] + $_[1] * sqrt(-2 * log rand) * cos(2 * $pi * rand);
+	return ($num);
+}
+
+

@@ -1,0 +1,12 @@
+set terminal pdfcairo
+set size 0.8, 1
+set key off
+set title "Stokes Parameters of sources in field of OBS_ID"
+set xlabel "Normalised Stokes parameter q"
+set ylabel "Normalised Stokes parameter u"
+
+set xrange [-0.15:0.15]
+set yrange [-0.15:0.15]
+set style line 1 ps 0.65 pt 7 lt 1 lc 7 lw 1.65
+set style line 2 ps 0.65 pt 7 lt 1 lc 1 lw 1.65
+plot 'field.dat' using 2:3 with points ls 1, 'grb.dat' using 2:3:4:5 with xyerrorbars ls 2

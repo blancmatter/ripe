@@ -1,0 +1,228 @@
+#!/usr/bin/perl 
+
+
+# Script to plot necessary plots for GRB sample
+# List of plots:
+# 1.
+
+
+# PERL MODULES WE WILL BE USING
+use DBI;
+use DBD::mysql;
+use File::Copy;
+use lib '/home/disrail/ripe/lib';
+use ripe;
+use Math::Trig;
+use Math::Complex;
+$pi = 3.14159265;
+
+
+
+# Debug Level
+$DEBUG = 0;
+
+# Open connection to db
+ripe::db_connect();
+
+qu_plot();
+#rankplot();
+
+	# THE DBI driver and like command seems to pull any obs_ids with "_10_" at the end, so remove them;
+	unlink glob "*_10_q*";
+	unlink glob "*_10_r*";
+	unlink glob "*_10_t*";
+
+
+
+################################
+######## END OF SCRIPT #########
+################################
+ 
+
+sub qu_plot {
+	
+	#Grab list of observations
+	$obs_list = $ripe::DB_grb->prepare("Select obs_id, object, tag, camera from obs");
+	$obs_list->execute();
+	
+	# For each observation;
+	while (@obs_data = $obs_list->fetchrow_array()){
+		
+		$obs_id = $obs_data[0];
+		$object = $obs_data[1];
+		   $tag = $obs_data[2];
+		$camera = $obs_data[3];
+		if ($DEBUG) {print "Obs_id: $obs_id\n";}
+	
+		# For each observation grab all sources
+		$source_list = $ripe::DB_grb->prepare("Select target, -2.5 * log10(S1) + 23.55, q, u, q_err, u_err, p / 0.0075, p_err_minus / 0.0075, p_err_plus / 0.0075 from photdata where obs_id_link='$obs_id' and tag_link ='$tag'");
+		$source_list->execute();
+		
+		# open output files
+		open field, ">>field.dat" or die $!;
+		open grb, ">>grb.dat" or die $!;
+		
+		# Reset targets
+		my $targets = 0;
+		
+		# Go thropugh sources and output to two files, field.dat and grb.dat
+		while (@source_data = $source_list->fetchrow_array()) {
+			$target = $source_data[0];
+			$mag = $source_data[1];
+			$q = $source_data[2];
+			$u = $source_data[3];
+			$q_err = $source_data[4];
+			$u_err = $source_data[5];
+			$p = $source_data[6];
+			$p_err_minus = $source_data[7];
+			$p_err_plus = $source_data[7];
+			
+			
+			
+			if ($DEBUG) {print "\t@source_data\n";}
+		 
+			if ($target eq "G") {
+				print grb "$mag\t$q\t$u\t$q_err\t$u_err\t$p\t$p_err_minus\t$p_err_plus\n";
+				$targets++;
+				
+				if ($mag >= 16) { 
+					$mag_plot_upper = $mag + 2;
+				
+				}
+			
+				else { 
+					$mag_plot_upper = 18; 
+				
+				}
+			}
+		 
+			else { 
+				print field "$mag\t$q\t$u\t$q_err\t$u_err\t$p\t$p_err_minus\t$p_err_plus\n";
+			}
+				
+				
+		}
+		
+		if ($targets == 0) {print "qu_plot --> No Targets in observation $obs_id\n";}
+		if ($targets > 1) {print "qu_plot --> $targets found in observation $obs_id\n";}
+		
+		if ($targets == 1) {
+			# Copy GNUPLOT templates and gnuplot
+			$modifyplot = `cat $ripe::ripedir/config/gplots/trumpet.gpc | sed 's/OBS_ID/$obs_id/g' | sed 's/MAG_UPPER/$mag_plot_upper/g' > ./trumpet.gpc`;
+			$modifyplot = `cat $ripe::ripedir/config/gplots/qu.gpc | sed 's/OBS_ID/$obs_id/g' > ./qu.gpc`;
+			$modifyplot = `cat $ripe::ripedir/config/gplots/qumag.gpc | sed 's/OBS_ID/$obs_id/g' | sed 's/MAG_UPPER/$mag_plot_upper/g' > ./qumag.gpc`;
+			$plot = `gnuplot ./trumpet.gpc > ${obs_id}trump.pdf`;
+			$plot = `gnuplot ./qu.gpc > ${obs_id}qu.pdf`;
+			$plot = `gnuplot ./qumag.gpc > ${obs_id}qu_trump.pdf`;
+
+		
+		
+		}
+		
+		#unlink glob "*.dat";
+		#unlink glob "*.gpc";
+		
+	}
+		
+}
+
+
+
+sub rankplot {
+
+	#Grab data
+	$grab= $ripe::DB_grb->prepare("Select obs_id_link, a1, b1, c1, d1, a2, b2, c2, d2, date from photdata, obs where obs_id_link = obs_id and target = 'G' and obs_id like '%\_0\_' order by obs_id_link");
+	$grab->execute(); 
+
+
+	
+	#go through each row  
+	while (@data = $grab->fetchrow_array()){
+		if ($DEGUG) {print "rankplot --> Input array is: @data";}
+		my $obs_id = $data[0];            
+		my $a1 = $data[1];            
+		my $b1 = $data[2];            
+		my $c1 = $data[3];            
+		my $d1 = $data[4];            
+		my $a2 = $data[5];            
+		my $b2 = $data[6];            
+		my $c2 = $data[7];            
+		my $d2 = $data[8];            
+		my $date = $data[9];
+		
+		# obtain correct inst pol corrections 
+		@calibrations = ripe::get_calibrations($date);
+		if ($#calibrations != 7 || !@calibrations) {
+			die "Error: rankplot --> problem with get_calibrations()\n";
+		}
+		
+		# apply calibrations
+		$a1 /= $calibrations[0];
+		$b1 /= $calibrations[1];
+		$c1 /= $calibrations[2];
+		$d1 /= $calibrations[3];
+		$a2 /= $calibrations[4];
+		$b2 /= $calibrations[5];
+		$c2 /= $calibrations[6];
+		$d2 /= $calibrations[7];
+		
+		# get polarisation
+		
+		my $pol_value = ripe::calcpol($a1, $b1, $c1, $d1, $a2, $b2, $c2, $d2) / 0.75;
+		if ($DEBUG) {print "rankplot --> Polarisation value for $obs_id  is $pol_value\n";}
+		
+		# get jumble data
+		
+		@jumbled = ripe::jumble($a1, $b1, $c1, $d1, $a2, $b2, $c2, $d2); 
+		# NOTE all jumbled values are multiplyed by 1 / 0.75 in the ripe::jumble sub.... 
+		if ($DEBUG) {print "rankplot --> Have $#jumbled values from ripe::jumble for $obs_id\n";}
+		
+		
+		# print out data
+		open FILE, ">$obs_id.dat" or die $!;
+		print FILE join("\n", @jumbled);
+		close FILE;
+		
+		# Find max Array value and rank of pol_value for scaling of plot then clear array
+		my @array = sort { $a <=> $b } @jumbled;
+		my $max_value = @array[-1];
+		
+		my $rank_value = 0;
+		while ($pol_value > $array[$rank_value]) {
+			
+			if ($DEBUG == 2) {print "rankplot --> Pol value: $pol_value\t$array[$rank_value]\t$rank_value\n";}
+			$rank_value++;
+			
+		}
+		
+		$rank_percent =  sprintf("%.3f", $rank_value / 5040);
+		if ($DEBUG) {print "rankplot --> Rank Value: $rank_value\t Rank Percent: $rank_percent\n";}
+		
+		undef @jumbled;
+		undef @array;
+		
+		my $upper_x = $max_value * 1.2;
+		my $label_pos = $max_value * 1.1;
+		if ($DEBUG) {print "rankplot --> Maximum value of jumble for $obs_id is $max_value\n";}
+		
+		
+		
+		
+		
+		# grab gnuplot tempate and personalise
+		$copygpc = `cat $ripe::ripedir/config/gplots/rank.gpc | sed 's/OBS_ID/$obs_id/g' | sed 's/LABELPOS/$label_pos/g' | sed 's/UPPERX/$upper_x/g' | sed 's/POLVAL/$pol_value/g' | sed 's/RANKPERCENT/$rank_percent/g' > $obs_id.gpc`;
+		
+		
+		
+		# gnuplot data 
+		$plot = `gnuplot $obs_id.gpc > ${obs_id}rank.pdf`;
+		
+		unlink glob "*.dat";
+		unlink glob "*.gpc";
+		
+	}
+
+}
+
+
+
