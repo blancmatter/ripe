@@ -14,14 +14,14 @@ The pipline uses the following technologies;
 * MySQL as a database for extracted information
 
 
-## Key Files for understanding the Pipleline 
+## Key Files for understanding the Pipleline
 
 ### [ripe.pm](https://github.com/blancmatter/ripe/blob/master/lib/ripe.pm)
 This is the perl module, where many functions are written which are called by many other perl scripts which load this file as a module. The most important of these is '''sub db_connect()''' which hardcodes the database login credentials and allows any perl module to connect to the database. If the database is empty, then this function creates the necessary tables for storage of the polarimetric data. See this function for the SQL description of the tables.
 
 Further to this there are a number of different functions required for poalrimetric calculation on data within the database.
 
-### [ripe](bin/ripe) 
+### [ripe](bin/ripe)
 This is the key file for initial extraction of data and entry into the database. It is intended to be run in the same directory as the files for reduction.
 
 Usage;
@@ -56,9 +56,10 @@ A number of scripts exist in this. Polcalc takes the photometric data in the dat
 
 ### [grabdat](bin/grabdat)
 
-grabdat enables the user to pull requersted information from the database and use in tabular format as a `.dat` file which could then be used with a gnuplot template to automate fast plotting of data from the database. Essentially it just passes the command line argument (SQL query) to the database and writes the results to a text file, with the column IDs at the top. It creates a queries.log file of each command run whilst in a particular working directory. 
+grabdat enables the user to pull requersted information from the database and use in tabular format as a `.dat` file which could then be used with a gnuplot template to automate fast plotting of data from the database. Essentially it just passes the command line argument (SQL query) to the database and writes the results to a text file, with the column IDs at the top. It creates a queries.log file of each command run whilst in a particular working directory.
 
 The command [regrab](bin/regrab) will then delete all the `.dat` files and rerun the queries for that working directory. This allowed modifcations and tweeks to be made to data analysis and then data and plots to be updated again quickly.
 
+### [trumpet](bin/trumpet)
 
-
+This script shows an example of `grabdat` being used to obtain source magnitude vs measured polarisation from the field of a GRB. This shows the deterioration of polarimetric accuracy as a reduduction. See [This File](120119A.pdf) for an example of instrumental magnitude vs measured polarisation in the field of GRB 120119A.
