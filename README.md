@@ -45,4 +45,6 @@ In short it;
 * Cleans up the local directory
 
 
-### [polcalc]
+### [polcalc](bin/polcalc)
+
+A number of scripts exist in this. Polcalc takes the photometric data in the database and calculates the polarisation using the equations in [Clarke & Neumayer, 2002](https://core.ac.uk/download/pdf/1414641.pdf). The then has a number of switches allowing different methods
