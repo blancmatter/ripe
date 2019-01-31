@@ -54,7 +54,7 @@ Once the sources are identified, this allows polarisation calculation to be sped
 
 polcalc basically takes the photometric data in the database and calculates the polarisation using the equations in [Clarke & Neumayer, 2002](https://core.ac.uk/download/pdf/1414641.pdf). A version for RINGO3, [polcalc_r3](bin/polcalc_r3), extends the functionality to dealing with data for 3 instruments with different stokes zero points and instrumental depolarisation.
 
-Polcalc has a number of switches to run in different modes that were investigated during the PhD. `$calibrate` gives the options for setting the zero point. `$calibrate=3` calls the function `get_zeropoints`
+Polcalc has a number of switches to run in different modes that were investigated during the PhD. `$calibrate` gives the options for setting the zero point. `$calibrate=3` calls the function `get_zeropoints()` from [ripe.pm](lib/ripe.pm)
 
 ```
 sub get_zeropoints {
@@ -74,6 +74,22 @@ sub get_zeropoints {
 		$range += 1;
 		if ($DEBUG) {print "DBG --> get_zeropoints: Number of sources is $num, recalling with range $range\n";}
 		($q_zeropoint, $u_zeropoint, $q_zeropoint_err, $u_zeropint_error) = get_zeropoints($mjd, $camera, $range);
+
+	}
+
+	else {
+
+	($q_zeropoint, $u_zeropoint, $q_zeropoint_err, $u_zeropint_error) = stokes_calc($A1, $B1, $C1, $D1, $A2, $B2, $C2, $D2, $A1_err, $B1_err, $C1_err, $D1_err, $A2_err, $B2_err, $C2_err, $D2_err);
+
+	}
+
+	if ($DEBUG) {print "$num, $q_zeropoint, $u_zeropoint, $q_zeropoint_err, $u_zeropint_error, $mjd_range\n";}
+
+	return($q_zeropoint, $u_zeropoint, $q_zeropoint_err, $u_zeropint_error);
+
+
+}
+
 
 	}
 ```
