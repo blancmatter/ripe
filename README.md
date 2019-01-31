@@ -21,11 +21,14 @@ This is the perl module, where many functions are written which are called by ma
 
 Further to this there are a number of different functions required for poalrimetric calculation on data within the database.
 
-### [ripe](https://github.com/blancmatter/ripe/blob/master/bin/ripe) 
+### [ripe](bin/ripe) 
 This is the key file for initial extraction of data and entry into the database. It is intended to be run in the same directory as the files for reduction.
+
+Usage;
 ```
 ripe <tag>
 ```
+where <tag> is a unique identifier for the data entry. This tag must be provided. This tag allows the same data to be entered into the database with different reduction paramters (aperture size, etc) and extracted based on the settings used.
 
 In short it;
 * Checks the files in the local directory and looks at observations, checking there are 8 files for each.
@@ -41,3 +44,5 @@ In short it;
   * Adds the information of every source in the field as a seperate entry in the `photdata` table of the database.
 * Cleans up the local directory
 
+
+### [polcalc]
