@@ -14,7 +14,7 @@ The pipline uses the following technologies;
 * MySQL as a database for extracted information
 
 
-## Key Files for understanding the Pipleline
+## Key Ffiles for information
 
 ### [ripe.pm](https://github.com/blancmatter/ripe/blob/master/lib/ripe.pm)
 This is the perl module, where many functions are written which are called by many other perl scripts which load this file as a module. The most important of these is '''sub db_connect()''' which hardcodes the database login credentials and allows any perl module to connect to the database. If the database is empty, then this function creates the necessary tables for storage of the polarimetric data. See this function for the SQL description of the tables.
@@ -44,11 +44,13 @@ In short it;
   * Adds the information of every source in the field as a seperate entry in the `photdata` table of the database.
 * Cleans up the local directory
 
+
 ### [standfind2](bin/standfind2)
 
 This script goes through the database and identifies all sources which are standard stars (Zero Polarised or Polarised) or any science objects (i.e. GRBs). The objexts were specified in their RA and Dec and type in the file [standards.lst](config/standards/standards.lst) and imported into the standards table of the database for comparison using [stand](bin/stand).
 
 Once the sources are identified, this allows polarisation calculation to be sped up by only calculating the interesting sources (especially importnat when doing monte carlo error analysis), and also for pulling out data (i.e. average q value during a certain date range for zero polarised sources, giving a stokes zero point).
+
 
 ### [polcalc](bin/polcalc)
 
@@ -94,11 +96,19 @@ sub get_zeropoints {
 
 This routine is called with date, range and the camera (d, e, f, p) which specifies the band. It then prepares an SQL query that finds all the identified zero polarised sources (target='U') observed within the range of the date. If there are less than 3 sources identified it will add one day to the range and rerun until there are more than 3 sources. Once there are more than 3 sopurces, the function takes the 8 flux and error values from the photometry to calculate and send back the stokes zero points of the instrument. This function worked well in defining the zero points and is the general switch.
 
+With the zeropint and the error, polcalc can then give a corrected q and u values, and adds the q and u zeropoint errors in quaderature to the existing error amount. 
+
+There is then an `$ellipse_correction` option to modify the polarisation value based on the angle. This uses values of ellipticity (E) and angle (theta), which have been determined from analysing polarisation rings formed by viewing polarised standard sources at mutiple sky angles.
+
+**Polcalc does not correct for instrumental depolarisation** This linear term was generally introduced when using `grabdat` and multiplying the polarisation value and error by a constant factor.
+
+
 ### [grabdat](bin/grabdat)
 
 grabdat enables the user to pull requersted information from the database and use in tabular format as a `.dat` file which could then be used with a gnuplot template to automate fast plotting of data from the database. Essentially it just passes the command line argument (SQL query) to the database and writes the results to a text file, with the column IDs at the top. It creates a queries.log file of each command run whilst in a particular working directory.
 
 The command [regrab](bin/regrab) will then delete all the `.dat` files and rerun the queries for that working directory. This allowed modifcations and tweeks to be made to data analysis and then data and plots to be updated again quickly.
+
 
 ### [trumpet](bin/trumpet)
 
