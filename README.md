@@ -90,9 +90,9 @@ sub get_zeropoints {
 
 }
 
-
-	}
 ```
+
+This routine is called with date, range and the camera (d, e, f, p) which specifies the band. It then prepares an SQL query that finds all the identified zero polarised sources (target='U') observed within the range of the date. If there are less than 3 sources identified it will add one day to the range and rerun until there are more than 3 sources. Once there are more than 3 sopurces, the function takes the 8 flux and error values from the photometry to calculate and send back the stokes zero points of the instrument. This function worked well in defining the zero points and is the general switch.
 
 ### [grabdat](bin/grabdat)
 
