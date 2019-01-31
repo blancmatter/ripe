@@ -23,21 +23,21 @@ Further to this there are a number of different functions required for poalrimet
 
 ### [ripe](https://github.com/blancmatter/ripe/blob/master/bin/ripe) 
 This is the key file for initial extraction of data and entry into the database. It is intended to be run in the same directory as the files for reduction.
-'''
+```
 ripe <tag>
-'''
+```
 
 In short it;
 * Checks the files in the local directory and looks at observations, checking there are 8 files for each.
 * Connects to the database.
 * For each observation;
- * Extracts information from the fits headers.
- * Calculates the gain of the exposure (required for sourceExtractor).
- * Creates a stack of all 8 files to one photometric file.
- * Calls source extractor to find all sources in the field and saves the locations.
- * Calls source extractor for each of the 8 frames, using the field locations for apertures from the full stack.
- * Parses in each of the 8 text files created to determine Souce RA, Dec, Xpix, Ypix, Value and Error, plus any error flags.
- * Adds the information of the Observation to the `obs` table the database as a single entry.
- * Adds the information of every source in the field as a seperate entry in the `photdata` table of the database.
+  * Extracts information from the fits headers.
+  * Calculates the gain of the exposure (required for sourceExtractor).
+  * Creates a stack of all 8 files to one photometric file.
+  * Calls source extractor to find all sources in the field and saves the locations.
+  * Calls source extractor for each of the 8 frames, using the field locations for apertures from the full stack.
+  * Parses in each of the 8 text files created to determine Souce RA, Dec, Xpix, Ypix, Value and Error, plus any error flags.
+  * Adds the information of the Observation to the `obs` table the database as a single entry.
+  * Adds the information of every source in the field as a seperate entry in the `photdata` table of the database.
 * Cleans up the local directory
 
