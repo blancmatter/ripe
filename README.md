@@ -36,7 +36,7 @@ In short it;
 * For each observation;
   * Extracts information from the fits headers.
   * Calculates the gain of the exposure (required for sourceExtractor).
-  * Creates a stack of all 8 files to one photometric file.
+  * Creates a stack of all 8 files to one photometric file, using `imarith` from CFITSIO.
   * Calls source extractor to find all sources in the field and saves the locations.
   * Calls source extractor for each of the 8 frames, using the field locations for apertures from the full stack.
   * Parses in each of the 8 text files created to determine Souce RA, Dec, Xpix, Ypix, Value and Error, plus any error flags.
@@ -44,7 +44,21 @@ In short it;
   * Adds the information of every source in the field as a seperate entry in the `photdata` table of the database.
 * Cleans up the local directory
 
+### [standfind2](bin/standfind2)
+
+This script goes through the database and identifies all sources which are standard stars (Zero Polarised or Polarised) or any science objects (i.e. GRBs). The objexts were specified in their RA and Dec and type in the file [standards.lst](config/standards/standards.lst) and imported into the standards table of the database for comparison using [stand](bin/stand).
+
+Once the sources are identified, this allows polarisation calculation to be sped up by only calculating the interesting sources (especially importnat when doing monte carlo error analysis), and also for pulling out data (i.e. average q value during a certain date range for zero polarised sources, giving a stokes zero point).
 
 ### [polcalc](bin/polcalc)
 
-A number of scripts exist in this. Polcalc takes the photometric data in the database and calculates the polarisation using the equations in [Clarke & Neumayer, 2002](https://core.ac.uk/download/pdf/1414641.pdf). The then has a number of switches allowing different methods
+A number of scripts exist in this. Polcalc takes the photometric data in the database and calculates the polarisation using the equations in [Clarke & Neumayer, 2002](https://core.ac.uk/download/pdf/1414641.pdf). The then has a number of switches allowing different methods to be used for correcting instrumental polarisation.
+
+### [grabdat](bin/grabdat)
+
+grabdat enables the user to pull requersted information from the database and use in tabular format as a `.dat` file which could then be used with a gnuplot template to automate fast plotting of data from the database. Essentially it just passes the command line argument (SQL query) to the database and writes the results to a text file, with the column IDs at the top. It creates a queries.log file of each command run whilst in a particular working directory. 
+
+The command [regrab](bin/regrab) will then delete all the `.dat` files and rerun the queries for that working directory. This allowed modifcations and tweeks to be made to data analysis and then data and plots to be updated again quickly.
+
+
+
