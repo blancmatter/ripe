@@ -6,8 +6,8 @@
 
 use Math::Trig;
 use Math::Complex;
-use lib '/scratch/slo/NIRsky/Scripts/lib';
-use lise;
+use lib '../lib/ripe.pm';
+use ripe;
 $pi = 3.14159;
 
 $DEBUG=0;
@@ -21,33 +21,33 @@ if (-e $file) {
     $utstart = `modhead $file utstart | sed 's/[^0-9.:]*//g'`;
     chomp $utstart;
     if ($DEBUG) { print "Time: $utstart\n";}
-    
+
     $date = `modhead $file date-obs | sed 's/[^0-9]*//g'`;
     chomp $date;
-    substr($date, 4, 0) = '/'; substr($date, 7, 0) = '/'; 
+    substr($date, 4, 0) = '/'; substr($date, 7, 0) = '/';
 
     if ($DEBUG) { print "Date: $date\n";}
 
     $ra = `modhead $file ra | sed "s/[^0-9:.']*//g"`;
     chomp $ra;
-    ($null, $ra, $null) = split ("'", $ra);  
+    ($null, $ra, $null) = split ("'", $ra);
     $ra = lise::ra2angle($ra);
     if ($DEBUG) { print "RA: $ra\n";}
-    
-    
+
+
     $dec = `modhead $file dec | sed "s/[^0-9.:']*//g"`;
     chomp $dec;
     ($null, $dec, $null) = split ("'", $dec);
     $dec = lise::dec2angle($dec);
     if ($DEBUG) { print "Dec: $dec\n";}
-    
+
 }
 
-else 
+else
 {
     print "Error: File $file does not exist\n";
     exit();
-    
+
 }
 
 
@@ -100,5 +100,3 @@ if ($DEBUG) {
 $modhead = `modhead $file moonfrac $moon_frac`;
 $modhead = `modhead $file moonalt $moon_alt`;
 $modhead = `modhead $file moondist $moon_dist`;
-
-
