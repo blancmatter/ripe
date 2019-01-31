@@ -14,7 +14,7 @@ The pipline uses the following technologies;
 * MySQL as a database for extracted information
 
 
-## Key Ffiles for information
+## Key files for information
 
 ### [ripe.pm](https://github.com/blancmatter/ripe/blob/master/lib/ripe.pm)
 This is the perl module, where many functions are written which are called by many other perl scripts which load this file as a module. The most important of these is '''sub db_connect()''' which hardcodes the database login credentials and allows any perl module to connect to the database. If the database is empty, then this function creates the necessary tables for storage of the polarimetric data. See this function for the SQL description of the tables.
