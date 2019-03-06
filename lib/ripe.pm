@@ -3,7 +3,7 @@ package ripe;
 # Set to local directory
 $basepath=`pwd`;
 chomp $basepath;
-$ripedir = "/home/dma/ripe";
+$ripedir = "/ripe";
 $DEBUG = 0;
 
 use DBI;
@@ -12,22 +12,16 @@ use Math::Trig;
 use Math::Complex;
 $pi = 3.141592;
 
-
-
-
-
-
-
-  	#$database = "grbs";
-  	#$database = "test";
-	$database = "R2_stand";
-	#$database = "R3_stand";
+#$database = "grbs";
+#$database = "test";
+$database = "standards";
+#$database = "R3_stand";q
 
 sub cleanup {
  # Clean up directory of all unwanted files
 
- unlink glob "*.sex";
- unlink glob "*.param";
+ #unlink glob "*.sex";
+ #unlink glob "*.param";
 
 
 }
@@ -75,9 +69,9 @@ sub db_connect {
   $platform = "mysql";
 
   # $user = "sql284896";
-    $user = "disrail";
+    $user = "ripe";
   # $pw = "zD4!kZ1*";
-    $pw = "password";
+    $pw = "ripe";
 
   #DATA SOURCE NAME
   $dsn = "dbi:mysql:$database";  #:localhost:3306
@@ -175,7 +169,7 @@ sub db_connect {
  # Standards table
  $DB_grb->do("
   CREATE TABLE IF NOT EXISTS standards (
-  object_id VARCHAR(16),
+  object_id VARCHAR(26),
   stand_ra FLOAT(8,5),
   stand_dec FLOAT(8,5),
   type CHAR(1),
@@ -226,76 +220,63 @@ sub fitsdat {
     push (@return, $obj);
     if ($DEBUG) { print "$obj\n";}
 
-
     $date = `modhead $_[0] date | sed 's/[^0-9]*//g' `;
     chomp $date;
     push (@return, $date);
     if ($DEBUG) { print "Date: $date\n";}
 
     $mjd = `modhead $_[0] mjd | sed 's/[^0-9.]*//g' `;
-    chomp $date;
+    chomp $mjd;
+		$mjd = sprintf("%.2f", $mjd);
     push (@return, $mjd);
     if ($DEBUG) { print "MJD: $mjd\n";}
-
 
     $ra = `modhead $_[0] ra | sed 's/[^0-9:.]*//g'`;
     chomp $ra;
     if ($DEBUG) { print "RA: $ra\n";}
     $ra = ra2angle($ra);
-    #($ra_hr, $ra_min, $ra_sec) =  split (':',$ra);
-    #$ra = ($ra_hr * 15) + ($ra_min / 4) + ($ra_sec / 240);
     push (@return, $ra);
     if ($DEBUG) { print "RA: $ra\n";}
-
 
     $dec = `modhead $_[0] dec | sed 's/[^0-9:.+-]*//g'`;
     chomp $dec;
     $dec = dec2angle($dec);
-
-    #($dec_deg, $dec_min, $dec_sec) =  split (':',$dec);
-    #$dec = $dec_deg + ($dec_min / 60) + ($dec_sec / 3600);
     push (@return, $dec);
     if ($DEBUG) { print "Dec: $dec\n";}
-
 
     $alt = `modhead $_[0] altitude | sed 's/[^0-9.]*//g'`;
     chomp $alt;
     push (@return, $alt);
     if ($DEBUG) { print "Alt: $alt\n";}
 
-
     $az = `modhead $_[0] azimuth | sed 's/[^0-9.]*//g'`;
     chomp $az;
     push (@return, $az);
     if ($DEBUG) { print "Az: $az\n";}
-
 
     $rotmount = `modhead $_[0] rotangle | sed 's/[^0-9.+-]*//g'`;
     chomp $rotmount;
     push (@return, $rotmount);
     if ($DEBUG) { print "Rotmount: $rotmount\n";}
 
-
     $rotsky = `modhead $_[0] rotskypa | sed 's/[^0-9.+-]*//g'`;
     chomp $rotsky;
     push (@return, $rotsky);
     if ($DEBUG) { print "Rotsky: $rotsky\n";}
-
 
     $t_start = `modhead $_[0] utstart| sed 's/[^0-9:.]*//g'`;
     chomp $t_start;
     push (@return, $t_start);
     if ($DEBUG) { print "$t_start\n";}
 
-
     $t_exp = `modhead $_[0] exptime | sed 's/[^0-9.]*//g'`;
     chomp $t_exp;
     push (@return, $t_exp);
     if ($DEBUG) { print "$t_exp\n";}
 
-
-    $t_dur = `modhead $_[0] duration | sed 's/[^0-9:.+-]*//g'`;
+    $t_dur = `modhead $_[0] duration | sed 's/[^0-9:.]*//g'`;
     chomp $t_dur;
+		print "VALUE: t_dur is $t_dur\n";
     push (@return, $t_dur);
     if ($DEBUG) { print "$t_dur\n";}
 
@@ -908,5 +889,5 @@ sub test_sub {
 
 }
 
-#need PM to end with 1
+#need Perl Module to end with 1
 1;

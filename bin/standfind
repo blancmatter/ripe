@@ -5,7 +5,7 @@
 #use DBI;
 #use DBD::mysql;
 use File::Copy;
-use lib '/home/dma/ripe/lib';
+use lib '/ripe/lib';
 use ripe;
 use Math::Trig;
 use Math::Complex;
@@ -54,7 +54,7 @@ $stand_list->execute();
 # Throw the data into a 2 dimensional hash %stand_array
 my %stands;
 while (@stand_line = $stand_list->fetchrow_array()){
-	
+
 	$stands{$stand_line[0]}{RA} = $stand_line[1];
 	$stands{$stand_line[0]}{Dec} = $stand_line[2];
 	$stands{$stand_line[0]}{type} = $stand_line[3];
@@ -62,24 +62,22 @@ while (@stand_line = $stand_list->fetchrow_array()){
 
 
 
-if ($DEBUG) {
-	
-	foreach my $name (sort keys %stands) {
-		print "$name\t$stands{$name}{RA}\t$stands{$name}{Dec}\t$stands{$name}{type}\n";
-	}	
+
+print "\nRunning with the following standards list.\n\n==========================================================\n";
+foreach my $name (sort keys %stands) {
+		print "$name\t\t$stands{$name}{RA}\t$stands{$name}{Dec}\t$stands{$name}{type}\n";
 }
-
-
+print "==========================================================\n";
 
 
 #Prepare input quiery
-$input = $ripe::DB_grb->prepare("UPDATE photdata SET target = ?, target_dist = ?, target_score = ? WHERE id = ?"); 
+$input = $ripe::DB_grb->prepare("UPDATE photdata SET target = ?, target_dist = ?, target_score = ? WHERE id = ?");
 
 
 
 
 while (@obs_data = $obs_list->fetchrow_array()){
-	
+
 
 	$identified=0;
 	$i = 0;
@@ -87,37 +85,37 @@ while (@obs_data = $obs_list->fetchrow_array()){
 	@dist_array;
 	undef @score_array;
 	undef @dist_array;
-	
-	
+
+
 	$obs_id = $obs_data[0];
 	$object = $obs_data[1];
 	   $tag = $obs_data[2];
 	$camera = $obs_data[3];
-	
+
 	# Identify whether object exists in hash array
 	if (exists $stands{$object}) {
 		print "Standard exists for $object\n";
-		
+
 	}
-	
-	else 
-		
+
+	else
+
 	{
 		print "Object $object has no assoicated standard loaded\n";
 	}
-	
 
-	
+
+
 
 	# For each observation pic the brightest source
 	#$source_list = $ripe::DB_grb->prepare("Select id, xpix, ypix, S1, ra, decn from photdata where S1 = (Select max(S1) from photdata where obs_id_link='$obs_id' and tag_link ='$tag')");
-	
+
 	# For each observation grab 10 brightest sources
 	$source_list = $ripe::DB_grb->prepare("Select id, xpix, ypix, S1, ra, decn from photdata where obs_id_link='$obs_id' and tag_link ='$tag' order by (a1+a2+b1+b2+c1+c2+d1+d2) desc limit 10");
 	$source_list->execute();
-	
-	
-	
+
+
+
 	#Go through each source in the observation
 	while (@source_data = $source_list->fetchrow_array()){
 		  $id = $source_data[0];
@@ -126,77 +124,77 @@ while (@obs_data = $obs_list->fetchrow_array()){
 		  $S1 = $source_data[3];
 		  $ra = $source_data[4];
 		 $dec = $source_data[5];
-		 
+
 		print "$id\t$ra\t$dec\n";
-		
-	
-		 
+
+
+
 
 		#Brute force method
-		if ($mode == 1) { 
+		if ($mode == 1) {
 			for ($a = 0; $a < $numstands + 1; $a++) {
-			 
+
 				if (abs($ra - $stand_array[$a][1]) < 0.00020 && abs($dec - $stand_array[$a][2]) < 0.00020) {
 					# print "Found counterpart for $object as $stand_array[$a][0]\n";
 					$identified+=1;
 					$no_identified+=1;
-				 
+
 					#Input into target field
 					$input->execute('P',$null,$null,$id);
 				}
 			}
 		 }
-		 
+
 		#Nearest Neighbour method primer
-		
+
 		if ($mode == 2) {
 			$dist_array[$i][0] = sqrt ((abs($stands{$object}{RA} - $ra) * cos($dec))**2 + abs($stands{$object}{Dec} - $dec)**2) * 60 * 60;
 			$dist_array[$i][1] = $id;
 			print "$i\t$dist_array[$i][1]\t$dist_array[$i][0]\n";
 			$i++;
-			
+
 		}
-		
-		 
+
+
 		#Weighted method primer
 		if ($mode == 3) {
-			 
+
 		}
-		 
+
 	}
-	
-	
-	 
+
+
+
 	#Nearest Neighbour method sort and insertion
 	if ($mode == 2) {
-		
+
 		@sorted = sort { $a->[0] <=> $b->[0] } @dist_array;
 		if (debug == 1) {dump_array(@sorted);}
 		print "Selected $sorted[0][1] as standard with distance $sorted[0][0]\n\n";
 		$target_dist = $sorted[0][0];
 		$input->execute($stands{$object}{type},$target_dist,$null,$id);
-		
+
 	}
-		 
-	 
+
+
 	#Weighted method sort and insertion
 	if ($mode == 3) {
-		 
+
 	}
 
 
-	
-	
-	
+
+
+
 	$objcount{$object}+=1;
-	
+
 	if ($identified == 0) {
 		#print "For $obs_id\t$object no object found\t\n";
 		$no_notfound+=1;
 		$objnotfound{$object}+=1;
-		
+
 	}
-	
+
 	if ($identified > 1) {
 		#print "For $obs_id\tmore than one object found\n";
 		$multfound+=1;
@@ -204,11 +202,11 @@ while (@obs_data = $obs_list->fetchrow_array()){
 	}
 
 
-	
 
 
 
-	
+
+
 
 
 }
@@ -227,27 +225,27 @@ foreach (keys %objcount) {
     print "$_\t  $objnotfound{$_} / $objcount{$_}\n";
   }
 
-  
-  
-  
+
+
+
 print "Object duplicates\n";
 foreach (keys %objcount) {
     print "$_\t  $objdoublefound{$_} / $objcount{$_}\n";
   }
-  
-  
-  
-  
-  
+
+
+
+
+
 sub dump_array {
 	#Take 2d array and print out. Mainly for debugging
-	@array = @_; 
+	@array = @_;
 	print "Dumping Array\n";
 	print "Array size $#array\n";
 	for ($j = 0; $j <= $#array; $j++) {
 		print "$array[$j][1]\t$array[$j][0]\n";
 	}
-	
-	
-	
+
+
+
 }

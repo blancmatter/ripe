@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 
 
 # Script to go through Phot data and perform calculations on data
@@ -8,7 +8,7 @@
 use DBI;
 use DBD::mysql;
 use File::Copy;
-use lib '/home/disrail/ripe/lib';
+use lib '/ripe/lib';
 use ripe;
 use Math::Trig;
 use Math::Complex;
@@ -53,7 +53,7 @@ $fu_zeropoint_error = 0;
       print "Running with Calibration options\n\n";
     }
 
-# Debug options 
+# Debug options
 $DEBUG = 1;
 
 
@@ -67,7 +67,7 @@ ripe::db_connect();
 ripe::r3_trim();
 
 #Prepare input quiery
-$input = $ripe::DB_grb->prepare('UPDATE photdata SET S1 = ?, S2 = ?, S3 = ?, q = ?, u = ?, q_err = ?, u_err = ?, p = ?, p_err_minus = ?, p_err_plus = ?, beta = ?, beta_err = ? WHERE id = ?'); 
+$input = $ripe::DB_grb->prepare('UPDATE photdata SET S1 = ?, S2 = ?, S3 = ?, q = ?, u = ?, q_err = ?, u_err = ?, p = ?, p_err_minus = ?, p_err_plus = ?, beta = ?, beta_err = ? WHERE id = ?');
 
 #Grab data
 if ($mode == 1) { # Calculate everything
@@ -77,52 +77,52 @@ if ($mode == 1) { # Calculate everything
 if ($mode == 2) { # Calculate targets only
 	$grab=$ripe::DB_grb->prepare("Select id, object, obs_id, a1, b1, c1, d1, a2, b2, c2, d2, a1_err, b1_err, c1_err, d1_err, a2_err, b2_err, c2_err, d2_err, p, target, mjd, camera, xpix, ypix from photdata, obs where obs_id_link=obs_id and tag_link=tag and target is not null");
 }
-$grab->execute(); 
+$grab->execute();
 
 
-  
-#go through each row  
+
+#go through each row
 while (@data = $grab->fetchrow_array()){
 	$id = $data[0];
 	$object = $data[1];
 	$obs_id = $data[2];
-	$a1 = $data[3];            
-	$b1 = $data[4];            
-	$c1 = $data[5];            
-	$d1 = $data[6];            
-	$a2 = $data[7];            
-	$b2 = $data[8];            
-	$c2 = $data[9];            
-	$d2 = $data[10];            
-	$a1_err = $data[11];            
-	$b1_err = $data[12];           
-	$c1_err = $data[13];           
-	$d1_err = $data[14];           
-	$a2_err = $data[15];           
-	$b2_err = $data[16];           
-	$c2_err = $data[17];           
+	$a1 = $data[3];
+	$b1 = $data[4];
+	$c1 = $data[5];
+	$d1 = $data[6];
+	$a2 = $data[7];
+	$b2 = $data[8];
+	$c2 = $data[9];
+	$d2 = $data[10];
+	$a1_err = $data[11];
+	$b1_err = $data[12];
+	$c1_err = $data[13];
+	$d1_err = $data[14];
+	$a2_err = $data[15];
+	$b2_err = $data[16];
+	$c2_err = $data[17];
 	$d2_err = $data[18];
 
-	
+
 	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
 	$s2 = $a1 + $a2 + $b1 + $b2;
 	$s3 = $b1 + $b2 + $c1 + $c2;
-	
+
 	$s1_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2)+($d1_err**2)+($d2_err**2));
-	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));  
+	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));
 	$s3_err = sqrt(($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2));
-	
-	
+
+
 	# calculate q and u
 	$q = $pi * (0.5 - ($s3/$s1));
 	$u = $pi * (($s2/$s1) - 0.5);
-	
+
 	$q_err = $pi * sqrt( (($s3_err / $s1)**2) + (($s1_err * $s3 / ($s1**2))**2));
 	$u_err = $pi * sqrt( (($s2_err / $s1)**2) + (($s1_err * $s2 / ($s1**2))**2));
-	
+
 	# Apply calibration options for q and u
 	# if ($calibrate && $object !~ /zpol/){ #calibration from zero polarised spreads
-	if ($calibrate){   
+	if ($calibrate){
 	$pol_counter++;
 	if ($obs_id =~ /d_e/) {;
 		$q += -$dq_zeropoint;
@@ -132,46 +132,46 @@ while (@data = $grab->fetchrow_array()){
 		$q += -$eq_zeropoint;
 		$u += -$eu_zeropoint;
 	}
-	
+
 		if ($obs_id =~ /f_e/) {;
 		$q += -$fq_zeropoint;
 		$u += -$fu_zeropoint;
 	}
-	
+
 	$q_err_prev = $q_err;
 	$u_err_prev = $u_err;
-	
+
 	$q_err = sqrt (($q_err_prev ** 2) + ($q_zeropoint_error ** 2));
 	$u_err = sqrt (($u_err_prev ** 2) + ($u_zeropoint_error ** 2));
 	#print "Previous q_err: $q_err_prev\n";
 	#print "     New q_err: $q_err\n";
 	#print "Previous u_err: $u_err_prev\n";
 	#print "     New u_err: $u_err\n";
-	
+
 	}
 	# Calculate polarisation and angle
 	$pol = sqrt(($q**2)+($u**2));
 	#$pol_err_plus = $pol * 0.5 * ((sqrt( ((2 * $q_err * $q)**2) + ((2 * $u_err * $u)**2))) / (($q*$q)+($u*$u)));
 	#$pol_err_minus = $pol_err_plus;
 	($pol, $pol_err_minus, $pol_err_plus) = ripe::mc_old($q, $u, $q_err, $u_err);
-	
-	
-	
+
+
+
 	if ($q != 0 && $u != 0) {
 	$beta = (atan2 $u,$q) / 2;
 	$uOVERq_err = sqrt ((($u_err / $u)**2) + (($q_err / $q)**2)) * ($u / $q);
 	$beta_err = $uOVERq_err / (1 + (($u / $q)**2)) / (2 * $pi) * 360;
 	$beta_deg = (($beta / (2 * $pi)) * 360) + 90;
 	}
-	# print "S1: $s1\nS1_err: $s1_err\nS2: $s2\nS2_err: $s2_err\nS3: $s3\nS3_err: $s3_err\n\n"; 
+	# print "S1: $s1\nS1_err: $s1_err\nS2: $s2\nS2_err: $s2_err\nS3: $s3\nS3_err: $s3_err\n\n";
 	$input->execute($s1, $s2, $s3, $q, $u, $q_err, $u_err, $pol, $pol_err_minus, $pol_err_plus, $beta_deg, $beta_err, $id);
 
 	$counter++;
 	print "Processed:\t $counter\r";
-  
+
 }
-  
-  
+
+
 print "Processed $counter objects in database $ripe::database\n";
 if ($calibrate) {
 	print "Polarised Correction applied to $pol_counter objects\n";
@@ -181,6 +181,3 @@ if ($calibrate) {
 ########################################
 ##########   END OF CODE ###############
 ########################################
-
-  
-  

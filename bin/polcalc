@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 
 
 # Script to go through Phot data and perform calculations on data
@@ -8,7 +8,7 @@
 use DBI;
 use DBD::mysql;
 use File::Copy;
-use lib '/home/dma/ripe/lib';
+use lib '/ripe/lib';
 use ripe;
 use Math::Trig;
 use Math::Complex;
@@ -73,7 +73,7 @@ $u_zeropoint_error = 0.0000;
 
 
 
-              
+
 $A1_correction = 0.9786;
 $B1_correction = 1.0245;
 $C1_correction = 1.0258;
@@ -96,7 +96,7 @@ $D2_correction = 0.9895;
 ripe::db_connect();
 
 #Prepare input quiery
-$input = $ripe::DB_grb->prepare('UPDATE photdata SET S1 = ?, S2 = ?, S3 = ?, q = ?, u = ?, q_err = ?, u_err = ?, p = ?, p_err_minus = ?, p_err_plus = ?, beta = ?, beta_err = ? WHERE id = ?'); 
+$input = $ripe::DB_grb->prepare('UPDATE photdata SET S1 = ?, S2 = ?, S3 = ?, q = ?, u = ?, q_err = ?, u_err = ?, p = ?, p_err_minus = ?, p_err_plus = ?, beta = ?, beta_err = ? WHERE id = ?');
 
 #Grab data
 if ($mode == 1) { # Calculate everything
@@ -107,29 +107,29 @@ if ($mode == 2) { # Calculate targets only
 	$grab=$ripe::DB_grb->prepare("Select id, a1, b1, c1, d1, a2, b2, c2, d2, a1_err, b1_err, c1_err, d1_err, a2_err, b2_err, c2_err, d2_err, p, target, mjd, camera, xpix, ypix from photdata, obs where obs_id_link=obs_id and tag_link=tag and target is not null");
 }
 
-$grab->execute(); 
+$grab->execute();
 
 
-  
-#go through each row  
+
+#go through each row
 while (@data = $grab->fetchrow_array()){
-	
-	$id = $data[0];            
-	$a1 = $data[1];            
-	$b1 = $data[2];            
-	$c1 = $data[3];            
-	$d1 = $data[4];            
-	$a2 = $data[5];            
-	$b2 = $data[6];            
-	$c2 = $data[7];            
-	$d2 = $data[8];            
-	$a1_err = $data[9];            
-	$b1_err = $data[10];           
-	$c1_err = $data[11];           
-	$d1_err = $data[12];           
-	$a2_err = $data[13];           
-	$b2_err = $data[14];           
-	$c2_err = $data[15];           
+
+	$id = $data[0];
+	$a1 = $data[1];
+	$b1 = $data[2];
+	$c1 = $data[3];
+	$d1 = $data[4];
+	$a2 = $data[5];
+	$b2 = $data[6];
+	$c2 = $data[7];
+	$d2 = $data[8];
+	$a1_err = $data[9];
+	$b1_err = $data[10];
+	$c1_err = $data[11];
+	$d1_err = $data[12];
+	$a2_err = $data[13];
+	$b2_err = $data[14];
+	$c2_err = $data[15];
 	$d2_err = $data[16];
 	$pol = $data[17];
 	$target = $data[18];
@@ -137,7 +137,7 @@ while (@data = $grab->fetchrow_array()){
 	$camera = $data[20];
 	$xpix = $data[21];
 	$ypix = $data[22];
-	
+
 	if ($calibrate == 2) {
 		$a1 /= $A1_correction;
 		$b1 /= $B1_correction;
@@ -149,40 +149,40 @@ while (@data = $grab->fetchrow_array()){
 		$d2 /= $D2_correction;
 	}
 
-	
+
 	$s1 = $a1 + $a2 + $b1 + $b2 + $c1 + $c2 + $d1 + $d2;
 	$s2 = $a1 + $a2 + $b1 + $b2;
 	$s3 = $b1 + $b2 + $c1 + $c2;
-	
+
 	$s1_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2)+($d1_err**2)+($d2_err**2));
-	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));  
+	$s2_err = sqrt(($a1_err**2)+($a2_err**2)+($b1_err**2)+($b2_err**2));
 	$s3_err = sqrt(($b1_err**2)+($b2_err**2)+($c1_err**2)+($c2_err**2));
-	
+
 	print "Running on ID: $id\n";
 	# calculate q and u
 	$q = $pi * (0.5 - ($s3/$s1));
 	$u = $pi * (($s2/$s1) - 0.5);
-	
+
 	$q_err = $pi * sqrt( (($s3_err / $s1)**2) + (($s1_err * $s3 / ($s1**2))**2));
 	$u_err = $pi * sqrt( (($s2_err / $s1)**2) + (($s1_err * $s2 / ($s1**2))**2));
-	
+
 	# Apply calibration options for q and u
 	if ($calibrate == 1){ #calibration from zero polarised spreads.
 
 		$q += -$q_zeropoint;
-		$u += -$u_zeropoint;  
+		$u += -$u_zeropoint;
 
 		$q_err_prev = $q_err;
 		$u_err_prev = $u_err;
-		
+
 		$q_err = sqrt (($q_err_prev ** 2) + ($q_zeropoint_error ** 2));
 		$u_err = sqrt (($u_err_prev ** 2) + ($u_zeropoint_error ** 2));
-	
+
 	}
-	
+
 	if ($calibrate == 3){ # Calibration of q and u taken from an n day spread around observation
-	
-		
+
+
 		($q_zeropoint, $u_zeropoint, $q_zeropoint_error, $u_zeropoint_error) = ripe::get_zeropoints($mjd, $camera, 2);
 		if ($output_z){
                 open ZPOL,  ">>zpol.log";
@@ -190,31 +190,31 @@ while (@data = $grab->fetchrow_array()){
                 }
 
 
-		
+
 		$q += -$q_zeropoint;
-		$u += -$u_zeropoint;  
+		$u += -$u_zeropoint;
 
 		$q_err_prev = $q_err;
 		$u_err_prev = $u_err;
-		
+
 		$q_err = sqrt (($q_err_prev ** 2) + ($q_zeropoint_error ** 2));
 		$u_err = sqrt (($u_err_prev ** 2) + ($u_zeropoint_error ** 2));
-		
+
 	}
-	
-	
-	
+
+
+
 	if ($ellipse_correction == 1) {
 		print "SCALING\n";
-		
+
 		$q *= $q_scaling_factor;
 		$u *= $u_scaling_factor;
-		
+
 		$q_err *= $q_scaling_factor;
 		$u_err *= $u_scaling_factor;
 	}
-	
-	
+
+
 	if ($ellipse_correction == 2) {
 		# All this is in a RINGO polarimetric data reduction document D.Arnold Jan 2015
 		$phi = atan2($u, $q) - $theta;
@@ -224,51 +224,46 @@ while (@data = $grab->fetchrow_array()){
 		if ($DEBUG) {
 			print DEBUG "$q\t$u\t$phi\t$a\t$r\n";
 		}
-		$q -= $delta_b * sin($theta); 
+		$q -= $delta_b * sin($theta);
 		$u += $delta_b * cos($theta);
 	}
-		
-	
+
+
 	# Calculate polarisation and angle
 	$pol = sqrt(($q**2)+($u**2));
-	
-	
+
+
 	print "$target\n";
 	if (1) {
 		$pol_err_minus = $pol * 0.5 * ((sqrt( ((2 * $q_err * $q)**2) + ((2 * $u_err * $u)**2))) / (($q*$q)+($u*$u)));
 		$pol_err_plus = $pol_err_minus;
 	}
-	
+
 	else
 	{ # Do monte carlo analysis
 		print "Target detected. Doing Monte Carlo Errors\n";
 		($pol, $pol_err_minus, $pol_err_plus) = ripe::mcerror($q, $u, $q_err, $u_err);
 	}
-	
+
 	if ($q != 0 && $u != 0) { # Stops division by zero.
 		$beta = (atan2 $u,$q) / 2; # See atan2 and why the normal atan function does not work here.
 		$uOVERq_err = sqrt ((($u_err / $u)**2) + (($q_err / $q)**2)) * ($u / $q);
 		$beta_err = $uOVERq_err / (1 + (($u / $q)**2)) / (2 * $pi) * 360;
 		$beta_deg = (($beta / (2 * $pi)) * 360) + 90;
 	}
-	
-	
+
+
 	# Grab and apply pol correcttion on field
 	$polcor = 0;
-	
+
 	if ($polcor) {
 		$pol_correction = ripe::field_correct($xpix, $ypix);
 		$pol -= $pol_correction;
 	}
-	
-	# print "$id\n"; 
+
+	# print "$id\n";
 	$input->execute($s1, $s2, $s3, $q, $u, $q_err, $u_err, $pol, $pol_err_minus, $pol_err_plus, $beta_deg, $beta_err, $id);
 	$counter++;
 	print "Processed:\t$counter\n\n";
 
 }
-  
-  
-  
-  
-  

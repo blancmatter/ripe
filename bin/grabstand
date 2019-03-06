@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 
 
 # Script to go through Phot data and perform calculations on data
@@ -8,7 +8,7 @@
 use DBI;
 use DBD::mysql;
 use File::Copy;
-use lib '/home/disrail/ripe/lib';
+use lib '/ripe/lib';
 use ripe;
 use Math::Trig;
 use Math::Complex;
@@ -41,8 +41,8 @@ if (!$ra_dec[0]) {
 }
 
 print "@ra_dec\n";
-  
-  
+
+
 
 
 
@@ -55,8 +55,8 @@ $grab = $ripe::DB_grb->prepare("Select obs_id from obs photdata where object lik
 $grab->execute();
 
 while ($obs = $grab->fetchrow_array()) {
-  
- print "$obs\n"; 
+
+ print "$obs\n";
  push (@obs_list, $obs);
 }
 
@@ -66,10 +66,10 @@ while ($obs = $grab->fetchrow_array()) {
 foreach (@obs_list) {
   $grab = $ripe::DB_grb->prepare("SELECT ID, ra, decn FROM photdata where obs_id_link like '$_'");
   $grab->execute();
-  
+
   while (@phots = $grab->fetchrow_array()) {
-  
- print "@phots\n"; 
+
+ print "@phots\n";
  push @points, [@phots];
 
 

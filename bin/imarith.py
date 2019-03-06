@@ -19,14 +19,11 @@ fits8 = pyfits.getdata(sys.argv[8],0)
 
 
 
-combinedfits = (fits1 + fits2 + fits3 + fits4 + fits5 + fits6 +fits7 + fits8) / 8
+combinedfits = (fits1 + fits2 + fits3 + fits4 + fits5 + fits6 +fits7 + fits8)
 
-print combinedfits
+#print combinedfits
 
 
 pyfits.writeto(sys.argv[9], combinedfits, header_data)
 
 print sys.argv[9]
-
-
-

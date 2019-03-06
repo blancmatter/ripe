@@ -5,7 +5,7 @@
 #use DBI;
 #use DBD::mysql;
 use File::Copy;
-use lib '/home/dma/ripe/lib';
+use lib '/ripe/lib';
 use ripe;
 use xpa;
 use Math::Trig;
@@ -38,7 +38,7 @@ $source_list = $ripe::DB_grb->prepare("Select id, xpix, ypix, S1, ra, decn from 
 
 
 # Prepare input quiery
-$input = $ripe::DB_grb->prepare("UPDATE photdata SET target = ?, target_dist = ?, target_score = ? WHERE id = ?"); 
+$input = $ripe::DB_grb->prepare("UPDATE photdata SET target = ?, target_dist = ?, target_score = ? WHERE id = ?");
 
 
 #Grab list of observations
@@ -46,19 +46,19 @@ $obs_list = $ripe::DB_grb->prepare("Select obs_id, object, tag from obs");
 $obs_list->execute();
 
 while (@obs_data = $obs_list->fetchrow_array()){
-	
+
 	$obs_id = $obs_data[0];
 	$object = $obs_data[1];
 	   $tag = $obs_data[2];
-	   
+
 	if ($mode) {xpa::open_file($obs_id);}
-	   
+
 	if ($DEBUG) {print "DBG--> Observation $obs_id for object $object with tag $tag:\n"}
-	
-	
+
+
 	# Grab standards in field
 	$stand_list->execute($object);
-	
+
 	# Throw the data into a 2 dimensional hash %stand_array
 	undef %stands;
 	my %stands;
@@ -68,17 +68,17 @@ while (@obs_data = $obs_list->fetchrow_array()){
 		$stands{$stand_line[3]}{Dec} = $stand_line[2];
 		$num_stands+=1;
 	}
-	
+
 	if ($DEBUG) {
 		print "DBG--> Number of standards is $num_stands for field $object:\n";
-		
+
 		foreach my $name (sort keys %stands) {
 			print "$name\t$stands{$name}{RA}\t$stands{$name}{Dec}\n";
 		}
 	}
-	
 
-	
+
+
 	foreach my $name (sort keys %stands) {
 		if ($DEBUG) {print "DBG--> $name\n"}
 		# Go through each source in the observation
@@ -90,39 +90,39 @@ while (@obs_data = $obs_list->fetchrow_array()){
 			$S1 = $source_data[3];
 			$ra = $source_data[4];
 			$dec = $source_data[5];
-			
-			
+
+
 			# Nearest Neighbour method primer
 			$dist_array[$i][0] = sqrt ((abs($stands{$name}{RA} - $ra) * cos($dec))**2 + abs($stands{$name}{Dec} - $dec)**2) * 60 * 60;
 			$dist_array[$i][1] = $id;
 			$dist_array[$i][2] = $xpix;
 			$dist_array[$i][3] = $ypix;
-			
+
 			$i++;
 		}
-		
+
 		@sorted = sort { $a->[0] <=> $b->[0] } @dist_array;
-		
+
 		if ($sorted[0][0] < 15) {
-			
-			if ($DEBUG) { 
+
+			if ($DEBUG) {
 				print "For $object $name have found nearest neighbour with ID: $sorted[0][1] with distance $sorted[0][0]\n";
 			}
-			
+
 			if ($mode != 2) {
 				print "INPUTING\n";
 				$input->execute($name,$sorted[0][0],$null,$sorted[0][1]);
 			}
-			
+
 			if ($mode) {xpa::disp_region($sorted[0][2], $sorted[0][3], $name)}
 		}
-		
+
 		undef @sorted;
 		undef @dist_array;
 
 		$i = 0;
-		
-	
+
+
 	}
 
 	# Pause and take a keypress in ds9
@@ -144,16 +144,14 @@ while (@obs_data = $obs_list->fetchrow_array()){
 
 sub dump_array {
 	#Take 2d array and print out. Mainly for debugging
-	@array = @_; 
+	@array = @_;
 	print "Dumping Array\n";
 	print "Array size $#array\n";
-	
+
 	for ($j = 0; $j <= $#array; $j++) {
 		print "$array[$j][1]\t$array[$j][0]\n";
 	}
-	
-	
-	
+
+
+
 }
-
-
